@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,54 +29,37 @@ namespace KeePass.Ecas
 
 	public sealed class EcasEventType : IEcasParameterized
 	{
-		private PwUuid m_type;
-		public PwUuid Type
-		{
-			get { return m_type; }
-		}
+		private readonly PwUuid m_puTypeE;
+		public PwUuid Type { get { return m_puTypeE; } }
 
-		private string m_strName;
-		public string Name
-		{
-			get { return m_strName; }
-		}
+		private readonly string m_strNameE;
+		public string Name { get { return m_strNameE; } }
 
-		private PwIcon m_pwIcon;
-		public PwIcon Icon
-		{
-			get { return m_pwIcon; }
-		}
+		private readonly PwIcon m_piE;
+		public PwIcon Icon { get { return m_piE; } }
 
-		private EcasParameter[] m_vParams;
-		public EcasParameter[] Parameters
-		{
-			get { return m_vParams; }
-		}
+		private readonly EcasParameter[] m_vParamsE;
+		public EcasParameter[] Parameters { get { return m_vParamsE; } }
 
-		private EcasEventCompare m_fn;
-		public EcasEventCompare CompareMethod
-		{
-			get { return m_fn; }
-		}
+		private readonly EcasEventCompare m_fn;
+		public EcasEventCompare CompareMethod { get { return m_fn; } }
 
 		private static bool EcasEventCompareTrue(EcasEvent e, EcasContext ctx)
 		{
 			return true;
 		}
 
-		public EcasEventType(PwUuid uuidType, string strName, PwIcon pwIcon,
+		public EcasEventType(PwUuid puType, string strName, PwIcon pi,
 			EcasParameter[] vParams, EcasEventCompare f)
 		{
-			if((uuidType == null) || PwUuid.Zero.Equals(uuidType))
-				throw new ArgumentNullException("uuidType");
+			if((puType == null) || puType.Equals(PwUuid.Zero))
+				throw new ArgumentNullException("puType");
 			if(strName == null) throw new ArgumentNullException("strName");
-			// if(vParams == null) throw new ArgumentNullException("vParams");
-			// if(f == null) throw new ArgumentNullException("f");
 
-			m_type = uuidType;
-			m_strName = strName;
-			m_pwIcon = pwIcon;
-			m_vParams = (vParams ?? EcasParameter.EmptyArray);
+			m_puTypeE = puType;
+			m_strNameE = strName;
+			m_piE = pi;
+			m_vParamsE = (vParams ?? EcasParameter.EmptyArray);
 			m_fn = (f ?? EcasEventCompareTrue);
 		}
 	}

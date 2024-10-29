@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
-using KeePass.App;
 using KeePass.Forms;
 
 using KeePassLib;
@@ -43,7 +42,7 @@ namespace KeePass.Util
 		private static volatile TcpListener g_tl = null;
 		private static volatile string g_strLockFile = null;
 
-		private static List<KeyValuePair<PwUuid, DateTime>> g_lOldMsgs =
+		private static readonly List<KeyValuePair<PwUuid, DateTime>> g_lOldMsgs =
 			new List<KeyValuePair<PwUuid, DateTime>>();
 
 		private const string IpcTcpSuffix = ".act";
@@ -127,10 +126,10 @@ namespace KeePass.Util
 			catch(Exception ex)
 			{
 				Debug.Assert(false);
-				if(Program.CommandLineArgs[AppDefs.CommandLineOptions.Debug] != null)
+				if(PwDefs.DebugMode)
 				{
 					Console.WriteLine("Exception in IpcBroadcast.TcpThreadProc:");
-					Console.WriteLine(ex.Message);
+					Console.WriteLine(StrUtil.FormatException(ex));
 				}
 			}
 		}

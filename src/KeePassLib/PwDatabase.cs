@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -838,7 +838,7 @@ namespace KeePassLib
 					// else if(mm == PwMergeMethod.KeepExisting) ...
 				}
 
-				return ((slStatus != null) ? slStatus.ContinueWork() : true);
+				return ((slStatus == null) || slStatus.ContinueWork());
 			};
 
 			EntryHandler ehSrc = delegate(PwEntry pe)
@@ -899,7 +899,7 @@ namespace KeePassLib
 					MergeEntryHistory(peLocal, pe, mm);
 				}
 
-				return ((slStatus != null) ? slStatus.ContinueWork() : true);
+				return ((slStatus == null) || slStatus.ContinueWork());
 			};
 
 			ghSrc(pdSource.RootGroup);

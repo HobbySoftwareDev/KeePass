@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ namespace KeePass.DataExchange
 	{
 		private const int MaxTreeHeight = 50000;
 
-		private Dictionary<string, object> m_dItems = new Dictionary<string, object>();
+		private readonly Dictionary<string, object> m_dItems = new Dictionary<string, object>();
 		public IDictionary<string, object> Items
 		{
 			get { return m_dItems; }
@@ -319,24 +319,6 @@ namespace KeePass.DataExchange
 			return u;
 		}
 
-		private static T ConvertOrDefault<T>(object o, T tDefault)
-			where T : struct // Use 'as' for class
-		{
-			if(o == null) return tDefault;
-
-			try
-			{
-				if(o is T) return (T)o;
-				return (T)Convert.ChangeType(o, typeof(T));
-			}
-			catch(Exception) { Debug.Assert(false); }
-
-			try { return (T)o; }
-			catch(Exception) { Debug.Assert(false); }
-
-			return tDefault;
-		}
-
 		public T GetValue<T>(string strKey)
 			where T : class
 		{
@@ -354,7 +336,7 @@ namespace KeePass.DataExchange
 
 			object o;
 			m_dItems.TryGetValue(strKey, out o);
-			return ConvertOrDefault(o, tDefault);
+			return MemUtil.ConvertObject<T>(o, tDefault);
 		}
 
 		public T[] GetValueArray<T>(string strKey)
@@ -389,7 +371,7 @@ namespace KeePass.DataExchange
 
 			T[] vT = new T[lO.Count];
 			for(int i = 0; i < lO.Count; ++i)
-				vT[i] = ConvertOrDefault(lO[i], tDefault);
+				vT[i] = MemUtil.ConvertObject<T>(lO[i], tDefault);
 
 			return vT;
 		}

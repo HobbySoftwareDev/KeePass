@@ -18,10 +18,9 @@
 	<meta name="DC.type" content="Text" />
 	<meta name="DC.format" content="text/html" />
 	<meta name="DC.language" content="en" />
-	<meta name="DC.rights" content="Copyright (C) 2003-2023 Dominik Reichl" />
+	<meta name="DC.rights" content="Copyright (C) 2003-2024 Dominik Reichl" />
 
 	<meta name="robots" content="index, follow" />
-	<meta name="flattr:id" content="42rykv" />
 
 	<title>Password Generator - KeePass</title>
 	<base target="_self" />
@@ -264,7 +263,7 @@ Generates for example: 'Hex: 13567A', 'Hex: A6B99D', 'Hex: 02243C', ...</p>
 <td><code>H{64}</code></td></tr>
 
 <tr><td>MAC Address</td>
-<td><code>HH\-HH\-HH\-HH\-HH\-HH</code></td></tr>
+<td><code>H\2\-HH\-HH\-HH\-HH\-HH</code></td></tr>
 
 <!-- <tr><td>E-Mail Address</td>
 <td><code>LA{11}\@LA{5}\.\c\o\m</code></td></tr> -->
@@ -362,6 +361,7 @@ To use a profile, simply select it from the drop-down profiles list
 in the password generator window. All settings of this profile will be
 restored accordingly.</p>
 
+<a name="derive"></a>
 <p><b>Meta-profile 'Derive from previous password':</b><br />
 When this meta-profile is selected, a password is generated based on
 a character set derived from the previous password. The new password

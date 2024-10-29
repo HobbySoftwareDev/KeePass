@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ namespace KeePassLib.Serialization
 #if !KeePassLibSD
 	internal sealed class IOWebClient : WebClient
 	{
-		private IOConnectionInfo m_ioc;
+		private readonly IOConnectionInfo m_ioc;
 
 		public IOWebClient(IOConnectionInfo ioc) : base()
 		{
@@ -126,7 +126,7 @@ namespace KeePassLib.Serialization
 		public override IAsyncResult BeginWrite(byte[] buffer, int offset,
 			int count, AsyncCallback callback, object state)
 		{
-			return BeginWrite(buffer, offset, count, callback, state);
+			return m_s.BeginWrite(buffer, offset, count, callback, state);
 		}
 #endif
 
@@ -324,6 +324,9 @@ namespace KeePassLib.Serialization
 				{
 					string strUA = p.Get(IocKnownProperties.UserAgent);
 					if(!string.IsNullOrEmpty(strUA)) hwr.UserAgent = strUA;
+
+					bool? obRedir = p.GetBool(IocKnownProperties.FollowRedirects);
+					if(obRedir.HasValue) hwr.AllowAutoRedirect = obRedir.Value;
 				}
 				else { Debug.Assert(false); }
 #endif
@@ -512,19 +515,25 @@ namespace KeePassLib.Serialization
 					SecurityProtocolType.Tls);
 
 				// The flags Tls11 and Tls12 in SecurityProtocolType have been
-				// introduced in .NET 4.5 and must not be set when running under
+				// introduced in .NET 4.5 and must not be set when running on
 				// older .NET versions (otherwise an exception is thrown)
 				Type tSpt = typeof(SecurityProtocolType);
-				string[] vSpt = Enum.GetNames(tSpt);
-				foreach(string strSpt in vSpt)
+				bool bSystem = false;
+				foreach(string strSpt in Enum.GetNames(tSpt))
 				{
-					if(strSpt.Equals("Tls11", StrUtil.CaseIgnoreCmp) ||
-						strSpt.Equals("Tls12", StrUtil.CaseIgnoreCmp) ||
-						strSpt.Equals("Tls13", StrUtil.CaseIgnoreCmp))
-						spt |= (SecurityProtocolType)Enum.Parse(tSpt, strSpt, true);
+					// When running on .NET 4.7 or higher, let the system
+					// choose the supported/enabled protocols;
+					// https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls
+					// https://learn.microsoft.com/en-us/windows/win32/secauthn/protocols-in-tls-ssl--schannel-ssp-
+					if(strSpt == "SystemDefault") { bSystem = true; break; }
+
+					if((strSpt == "Tls11") || (strSpt == "Tls12") || // Both .NET 4.5
+						(strSpt == "Tls13")) // .NET 4.8 (should imply SystemDefault)
+						spt |= (SecurityProtocolType)Enum.Parse(tSpt, strSpt);
 				}
 
-				ServicePointManager.SecurityProtocol = spt;
+				if(!bSystem) ServicePointManager.SecurityProtocol = spt;
+				else { Debug.Assert((long)ServicePointManager.SecurityProtocol == 0); }
 			}
 			catch(Exception) { Debug.Assert(false); }
 
@@ -675,7 +684,7 @@ namespace KeePassLib.Serialization
 
 				// We didn't download the file completely; close may throw
 				// an exception -- that's okay
-				try { s.Close(); }
+				try { s.Dispose(); }
 				catch(Exception) { }
 			}
 			catch(Exception)
@@ -784,10 +793,7 @@ namespace KeePassLib.Serialization
 			//	using(Stream sOut = IOConnection.OpenWrite(iocTo))
 			//	{
 			//		MemUtil.CopyStream(sIn, sOut);
-			//		sOut.Close();
 			//	}
-			//
-			//	sIn.Close();
 			// }
 			// DeleteFile(iocFrom);
 		}
@@ -816,7 +822,7 @@ namespace KeePassLib.Serialization
 				if(bGetStream)
 				{
 					Stream s = wr.GetResponseStream();
-					if(s != null) s.Close();
+					if(s != null) s.Dispose();
 				}
 			}
 			catch(Exception) { Debug.Assert(false); }

@@ -97,6 +97,7 @@
 			this.m_btnProxy = new System.Windows.Forms.Button();
 			this.m_lvAdvanced = new KeePass.UI.CustomListViewEx();
 			this.m_ttRect = new System.Windows.Forms.ToolTip(this.components);
+			this.m_tbSearch = new KeePass.UI.UIElementSearchBoxEx();
 			((System.ComponentModel.ISupportInitialize)(this.m_bannerImage)).BeginInit();
 			this.m_tabMain.SuspendLayout();
 			this.m_tabSecurity.SuspendLayout();
@@ -232,9 +233,9 @@
 			this.m_cbLockAfterGlobalTime.AutoSize = true;
 			this.m_cbLockAfterGlobalTime.Location = new System.Drawing.Point(6, 38);
 			this.m_cbLockAfterGlobalTime.Name = "m_cbLockAfterGlobalTime";
-			this.m_cbLockAfterGlobalTime.Size = new System.Drawing.Size(279, 17);
+			this.m_cbLockAfterGlobalTime.Size = new System.Drawing.Size(38, 17);
 			this.m_cbLockAfterGlobalTime.TabIndex = 2;
-			this.m_cbLockAfterGlobalTime.Text = "L&ock workspace after global user inactivity (seconds):";
+			this.m_cbLockAfterGlobalTime.Text = "<>";
 			this.m_cbLockAfterGlobalTime.UseVisualStyleBackColor = true;
 			this.m_cbLockAfterGlobalTime.CheckedChanged += new System.EventHandler(this.OnLockAfterGlobalTimeCheckedChanged);
 			// 
@@ -268,9 +269,9 @@
 			this.m_cbClipClearTime.AutoSize = true;
 			this.m_cbClipClearTime.Location = new System.Drawing.Point(6, 64);
 			this.m_cbClipClearTime.Name = "m_cbClipClearTime";
-			this.m_cbClipClearTime.Size = new System.Drawing.Size(263, 17);
+			this.m_cbClipClearTime.Size = new System.Drawing.Size(38, 17);
 			this.m_cbClipClearTime.TabIndex = 4;
-			this.m_cbClipClearTime.Text = "&Clipboard auto-clear time (seconds; main entry list):";
+			this.m_cbClipClearTime.Text = "<>";
 			this.m_cbClipClearTime.UseVisualStyleBackColor = true;
 			this.m_cbClipClearTime.CheckedChanged += new System.EventHandler(this.OnClipboardClearTimeCheckedChanged);
 			// 
@@ -291,9 +292,9 @@
 			this.m_cbDefaultExpireDays.AutoSize = true;
 			this.m_cbDefaultExpireDays.Location = new System.Drawing.Point(6, 90);
 			this.m_cbDefaultExpireDays.Name = "m_cbDefaultExpireDays";
-			this.m_cbDefaultExpireDays.Size = new System.Drawing.Size(315, 17);
+			this.m_cbDefaultExpireDays.Size = new System.Drawing.Size(38, 17);
 			this.m_cbDefaultExpireDays.TabIndex = 6;
-			this.m_cbDefaultExpireDays.Text = "By default, &new entries expire in the following number of days:";
+			this.m_cbDefaultExpireDays.Text = "<>";
 			this.m_cbDefaultExpireDays.UseVisualStyleBackColor = true;
 			this.m_cbDefaultExpireDays.CheckedChanged += new System.EventHandler(this.OnDefaultExpireDaysCheckedChanged);
 			// 
@@ -302,9 +303,9 @@
 			this.m_cbLockAfterTime.AutoSize = true;
 			this.m_cbLockAfterTime.Location = new System.Drawing.Point(6, 12);
 			this.m_cbLockAfterTime.Name = "m_cbLockAfterTime";
-			this.m_cbLockAfterTime.Size = new System.Drawing.Size(270, 17);
+			this.m_cbLockAfterTime.Size = new System.Drawing.Size(38, 17);
 			this.m_cbLockAfterTime.TabIndex = 0;
-			this.m_cbLockAfterTime.Text = "&Lock workspace after KeePass inactivity (seconds):";
+			this.m_cbLockAfterTime.Text = "<>";
 			this.m_cbLockAfterTime.UseVisualStyleBackColor = true;
 			this.m_cbLockAfterTime.CheckedChanged += new System.EventHandler(this.OnLockAfterTimeCheckedChanged);
 			// 
@@ -331,7 +332,7 @@
 			this.m_tabPolicy.Name = "m_tabPolicy";
 			this.m_tabPolicy.Size = new System.Drawing.Size(554, 338);
 			this.m_tabPolicy.TabIndex = 3;
-			this.m_tabPolicy.Text = "Policy";
+			this.m_tabPolicy.Text = "<>";
 			this.m_tabPolicy.UseVisualStyleBackColor = true;
 			// 
 			// m_lvPolicy
@@ -844,6 +845,13 @@
 			this.m_lvAdvanced.UseCompatibleStateImageBehavior = false;
 			this.m_lvAdvanced.View = System.Windows.Forms.View.Details;
 			// 
+			// m_tbSearch
+			// 
+			this.m_tbSearch.Location = new System.Drawing.Point(12, 439);
+			this.m_tbSearch.Name = "m_tbSearch";
+			this.m_tbSearch.Size = new System.Drawing.Size(182, 20);
+			this.m_tbSearch.TabIndex = 3;
+			// 
 			// OptionsForm
 			// 
 			this.AcceptButton = this.m_btnOK;
@@ -851,6 +859,7 @@
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.m_btnCancel;
 			this.ClientSize = new System.Drawing.Size(586, 471);
+			this.Controls.Add(this.m_tbSearch);
 			this.Controls.Add(this.m_tabMain);
 			this.Controls.Add(this.m_btnCancel);
 			this.Controls.Add(this.m_btnOK);
@@ -890,6 +899,7 @@
 			this.m_grpHotKeys.PerformLayout();
 			this.m_tabAdvanced.ResumeLayout(false);
 			this.ResumeLayout(false);
+			this.PerformLayout();
 
 		}
 
@@ -963,5 +973,6 @@
 		private System.Windows.Forms.LinkLabel m_linkMainFont;
 		private System.Windows.Forms.ComboBox m_cmbAltColor;
 		private System.Windows.Forms.Label m_lblAltColor;
+		private KeePass.UI.UIElementSearchBoxEx m_tbSearch;
 	}
 }

@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,8 +43,8 @@ namespace KeePass.DataExchange
 	/// </summary>
 	public sealed class KdbFile
 	{
-		private PwDatabase m_pwDatabase;
-		private IStatusLogger m_slLogger;
+		private readonly PwDatabase m_pwDatabase;
+		private readonly IStatusLogger m_slLogger;
 
 		private const string KdbPrefix = "KDB: ";
 
@@ -157,7 +157,7 @@ namespace KeePass.DataExchange
 		private Dictionary<UInt32, PwGroup> ReadGroups(KdbManager mgr)
 		{
 			uint uGroupCount = mgr.GroupCount;
-			Dictionary<UInt32, PwGroup> dictGroups = new Dictionary<uint, PwGroup>();
+			Dictionary<UInt32, PwGroup> dictGroups = new Dictionary<UInt32, PwGroup>();
 
 			Stack<PwGroup> vGroupStack = new Stack<PwGroup>();
 			vGroupStack.Push(m_pwDatabase.RootGroup);
@@ -172,7 +172,7 @@ namespace KeePass.DataExchange
 
 				pg.Name = g.Name;
 				pg.IconId = (g.ImageId < (uint)PwIcon.Count) ? (PwIcon)g.ImageId : PwIcon.Folder;
-				
+
 				pg.CreationTime = g.CreationTime.ToDateTime();
 				pg.LastModificationTime = g.LastModificationTime.ToDateTime();
 				pg.LastAccessTime = g.LastAccessTime.ToDateTime();
@@ -219,20 +219,15 @@ namespace KeePass.DataExchange
 
 				pe.IconId = (e.ImageId < (uint)PwIcon.Count) ? (PwIcon)e.ImageId : PwIcon.Key;
 
-				pe.Strings.Set(PwDefs.TitleField, new ProtectedString(
-					m_pwDatabase.MemoryProtection.ProtectTitle, e.Title));
-				pe.Strings.Set(PwDefs.UserNameField, new ProtectedString(
-					m_pwDatabase.MemoryProtection.ProtectUserName, e.UserName));
-				pe.Strings.Set(PwDefs.PasswordField, new ProtectedString(
-					m_pwDatabase.MemoryProtection.ProtectPassword, e.Password));
-				pe.Strings.Set(PwDefs.UrlField, new ProtectedString(
-					m_pwDatabase.MemoryProtection.ProtectUrl, e.Url));
+				ImportUtil.Add(pe, PwDefs.TitleField, e.Title, m_pwDatabase);
+				ImportUtil.Add(pe, PwDefs.UserNameField, e.UserName, m_pwDatabase);
+				ImportUtil.Add(pe, PwDefs.PasswordField, e.Password, m_pwDatabase);
+				ImportUtil.Add(pe, PwDefs.UrlField, e.Url, m_pwDatabase);
 
 				string strNotes = e.Additional;
 				ImportAutoType(ref strNotes, pe);
 				ImportUrlOverride(ref strNotes, pe);
-				pe.Strings.Set(PwDefs.NotesField, new ProtectedString(
-					m_pwDatabase.MemoryProtection.ProtectNotes, strNotes));
+				ImportUtil.Add(pe, PwDefs.NotesField, strNotes, m_pwDatabase);
 
 				pe.CreationTime = e.CreationTime.ToDateTime();
 				pe.LastModificationTime = e.LastModificationTime.ToDateTime();
@@ -317,7 +312,7 @@ namespace KeePass.DataExchange
 		private static Dictionary<PwGroup, UInt32> WriteGroups(KdbManager mgr,
 			PwGroup pgRoot)
 		{
-			Dictionary<PwGroup, UInt32> dictGroups = new Dictionary<PwGroup, uint>();
+			Dictionary<PwGroup, UInt32> dictGroups = new Dictionary<PwGroup, UInt32>();
 
 			uint uGroupIndex = 1;
 			DateTime dtNeverExpire = KdbManager.GetNeverExpireTime();
@@ -395,7 +390,7 @@ namespace KeePass.DataExchange
 			uGroupIndex = uLocalIndex;
 		}
 
-		private void WriteEntries(KdbManager mgr, Dictionary<PwGroup, uint> dictGroups,
+		private void WriteEntries(KdbManager mgr, Dictionary<PwGroup, UInt32> dictGroups,
 			PwGroup pgRoot)
 		{
 			bool bWarnedOnce = false;
@@ -450,7 +445,7 @@ namespace KeePass.DataExchange
 				else e.ExpirationTime.Set(dtNeverExpire);
 
 				IntPtr hBinaryData = IntPtr.Zero;
-				if(pe.Binaries.UCount >= 1)
+				if(pe.Binaries.UCount != 0)
 				{
 					foreach(KeyValuePair<string, ProtectedBinary> kvp in pe.Binaries)
 					{
@@ -467,7 +462,7 @@ namespace KeePass.DataExchange
 							e.BinaryData = hBinaryData;
 						}
 
-						break;
+						break; // In KDB, an entry may have at most one attachment
 					}
 
 					if((pe.Binaries.UCount > 1) && (m_slLogger != null))
@@ -629,41 +624,42 @@ namespace KeePass.DataExchange
 			return null;
 		}
 
-		private static Dictionary<string, string> m_dSeq1xTo2x = null;
-		private static Dictionary<string, string> m_dSeq1xTo2xBiDir = null;
+		private static Dictionary<string, string> g_dSeq1xTo2x = null;
+		private static Dictionary<string, string> g_dSeq1xTo2xBiDir = null;
 		private static string ConvertAutoTypeSequence(string strSeq, bool b1xTo2x)
 		{
 			if(string.IsNullOrEmpty(strSeq)) return string.Empty;
 
-			if(m_dSeq1xTo2x == null)
+			if(g_dSeq1xTo2x == null)
 			{
-				m_dSeq1xTo2x = new Dictionary<string, string>();
-				m_dSeq1xTo2xBiDir = new Dictionary<string, string>();
-
+				g_dSeq1xTo2x = new Dictionary<string, string>();
 				// m_dSeq1xTo2x[@"{SPACE}"] = " ";
 				// m_dSeq1xTo2x[@"{CLEARFIELD}"] = @"{HOME}+({END}){DEL}";
 
-				m_dSeq1xTo2xBiDir[@"{AT}"] = @"@";
-				m_dSeq1xTo2xBiDir[@"{PLUS}"] = @"{+}";
-				m_dSeq1xTo2xBiDir[@"{PERCENT}"] = @"{%}";
-				m_dSeq1xTo2xBiDir[@"{CARET}"] = @"{^}";
-				m_dSeq1xTo2xBiDir[@"{TILDE}"] = @"{~}";
-				m_dSeq1xTo2xBiDir[@"{LEFTBRACE}"] = @"{{}";
-				m_dSeq1xTo2xBiDir[@"{RIGHTBRACE}"] = @"{}}";
-				m_dSeq1xTo2xBiDir[@"{LEFTPAREN}"] = @"{(}";
-				m_dSeq1xTo2xBiDir[@"{RIGHTPAREN}"] = @"{)}";
-				m_dSeq1xTo2xBiDir[@"(+{END})"] = @"+({END})";
+				g_dSeq1xTo2xBiDir = new Dictionary<string, string>
+				{
+					{ @"{AT}", @"@" },
+					{ @"{PLUS}", @"{+}" },
+					{ @"{PERCENT}", @"{%}" },
+					{ @"{CARET}", @"{^}" },
+					{ @"{TILDE}", @"{~}" },
+					{ @"{LEFTBRACE}", @"{{}" },
+					{ @"{RIGHTBRACE}", @"{}}" },
+					{ @"{LEFTPAREN}", @"{(}" },
+					{ @"{RIGHTPAREN}", @"{)}" },
+					{ @"(+{END})", @"+({END})" }
+				};
 			}
 
 			string str = strSeq.Trim();
 
 			if(b1xTo2x)
 			{
-				foreach(KeyValuePair<string, string> kvp in m_dSeq1xTo2x)
+				foreach(KeyValuePair<string, string> kvp in g_dSeq1xTo2x)
 					str = StrUtil.ReplaceCaseInsensitive(str, kvp.Key, kvp.Value);
 			}
 
-			foreach(KeyValuePair<string, string> kvp in m_dSeq1xTo2xBiDir)
+			foreach(KeyValuePair<string, string> kvp in g_dSeq1xTo2xBiDir)
 			{
 				if(b1xTo2x) str = StrUtil.ReplaceCaseInsensitive(str, kvp.Key, kvp.Value);
 				else str = StrUtil.ReplaceCaseInsensitive(str, kvp.Value, kvp.Key);
@@ -690,7 +686,7 @@ namespace KeePass.DataExchange
 				string strPlaceholder = str.Substring(iStart, iEnd - iStart + 1);
 
 				if(!strPlaceholder.StartsWith("{S:", StrUtil.CaseIgnoreCmp))
-					str = str.Replace(strPlaceholder, strPlaceholder.ToUpper());
+					str = str.Replace(strPlaceholder, strPlaceholder.ToUpperInvariant());
 
 				iOffset = iStart + 1;
 			}

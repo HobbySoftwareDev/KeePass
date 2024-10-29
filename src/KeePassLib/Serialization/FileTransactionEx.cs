@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,19 +40,19 @@ namespace KeePassLib.Serialization
 {
 	public sealed class FileTransactionEx : IDisposable
 	{
-		private bool m_bTransacted;
+		private readonly bool m_bTransacted;
 		private IOConnectionInfo m_iocBase; // Null means disposed
 		private IOConnectionInfo m_iocTemp;
 		private IOConnectionInfo m_iocTxfMidFallback = null; // Null <=> TxF not used
 
 		private bool m_bMadeUnhidden = false;
-		private List<IOConnectionInfo> m_lToDelete = new List<IOConnectionInfo>();
+		private readonly List<IOConnectionInfo> m_lToDelete = new List<IOConnectionInfo>();
 
 		internal const string StrTempSuffix = ".tmp";
 		private static readonly string StrTxfTempPrefix = PwDefs.ShortProductName + "_TxF_";
 		internal const string StrTxfTempSuffix = ".tmp";
 
-		private static Dictionary<string, bool> g_dEnabled =
+		private static readonly Dictionary<string, bool> g_dEnabled =
 			new Dictionary<string, bool>(StrUtil.CaseIgnoreComparer);
 
 		private static bool g_bExtraSafe = false;
@@ -468,30 +468,30 @@ namespace KeePassLib.Serialization
 				if(fMatchEnv("OneDriveCommercial", string.Empty)) return true;
 				if(fMatchEnv("OneDriveConsumer", string.Empty)) return true;
 
-				using(RegistryKey kAccs = Registry.CurrentUser.OpenSubKey(
-					"Software\\Microsoft\\OneDrive\\Accounts", false))
+				using(RegistryKey rkAccs = Registry.CurrentUser.OpenSubKey(
+					"Software\\Microsoft\\OneDrive\\Accounts"))
 				{
-					string[] vAccs = (((kAccs != null) ? kAccs.GetSubKeyNames() :
+					string[] vAccs = (((rkAccs != null) ? rkAccs.GetSubKeyNames() :
 						null) ?? MemUtil.EmptyArray<string>());
 
 					foreach(string strAcc in vAccs)
 					{
 						if(string.IsNullOrEmpty(strAcc)) { Debug.Assert(false); continue; }
 
-						using(RegistryKey kTenants = kAccs.OpenSubKey(
-							strAcc + "\\Tenants", false))
+						using(RegistryKey rkTenants = rkAccs.OpenSubKey(
+							strAcc + "\\Tenants"))
 						{
-							string[] vTenants = (((kTenants != null) ?
-								kTenants.GetSubKeyNames() : null) ?? MemUtil.EmptyArray<string>());
+							string[] vTenants = (((rkTenants != null) ?
+								rkTenants.GetSubKeyNames() : null) ?? MemUtil.EmptyArray<string>());
 
 							foreach(string strT in vTenants)
 							{
 								if(string.IsNullOrEmpty(strT)) { Debug.Assert(false); continue; }
 
-								using(RegistryKey kT = kTenants.OpenSubKey(strT, false))
+								using(RegistryKey rkT = rkTenants.OpenSubKey(strT))
 								{
-									string[] vPaths = (((kT != null) ?
-										kT.GetValueNames() : null) ?? MemUtil.EmptyArray<string>());
+									string[] vPaths = (((rkT != null) ?
+										rkT.GetValueNames() : null) ?? MemUtil.EmptyArray<string>());
 
 									foreach(string strPath in vPaths)
 									{

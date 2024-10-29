@@ -353,6 +353,9 @@
     <Compile Include="..\KeePassLib\Utility\AppLogEx.cs">
       <Link>KeePassLib\Utility\AppLogEx.cs</Link>
     </Compile>
+    <Compile Include="..\KeePassLib\Utility\ExtendedException.cs">
+      <Link>KeePassLib\Utility\ExtendedException.cs</Link>
+    </Compile>
     <Compile Include="..\KeePassLib\Utility\GfxUtil.cs">
       <Link>KeePassLib\Utility\GfxUtil.cs</Link>
     </Compile>
@@ -398,7 +401,9 @@
     <Compile Include="App\Configuration\AceTrayIcon.cs" />
     <Compile Include="App\Configuration\AceUI.cs" />
     <Compile Include="App\Configuration\AppConfigEx.cs" />
+    <Compile Include="App\Configuration\AppConfigEx.Sections.cs" />
     <Compile Include="App\Configuration\AppConfigSerializer.cs" />
+    <Compile Include="App\Configuration\AppEnforcedConfig.cs" />
     <Compile Include="DataExchange\CsvStreamReader.cs" />
     <Compile Include="DataExchange\CsvStreamReaderEx.cs" />
     <Compile Include="DataExchange\CsvStreamWriter.cs" />
@@ -460,7 +465,6 @@
     <Compile Include="DataExchange\Formats\RoboFormHtml69.cs" />
     <Compile Include="DataExchange\Formats\SafeWalletXml3.cs" />
     <Compile Include="DataExchange\Formats\SecurityTxt12.cs" />
-    <Compile Include="DataExchange\Formats\Spamex20070328.cs" />
     <Compile Include="DataExchange\Formats\SplashIdCsv402.cs" />
     <Compile Include="DataExchange\Formats\SteganosCsv20.cs" />
     <Compile Include="DataExchange\Formats\SteganosUI2007.cs" />
@@ -492,6 +496,12 @@
     </Compile>
     <Compile Include="Forms\AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\OptionsEnfForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\OptionsEnfForm.Designer.cs">
+      <DependentUpon>OptionsEnfForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\OtpGeneratorForm.cs">
       <SubType>Form</SubType>
@@ -864,6 +874,7 @@
     <Compile Include="UI\FileIcons.cs" />
     <Compile Include="UI\FontControlGroup.cs" />
     <Compile Include="UI\FontUtil.cs" />
+    <Compile Include="UI\FormDataExchange.cs" />
     <Compile Include="UI\GlobalWindowManager.cs" />
     <Compile Include="UI\IconColorizer.cs" />
     <Compile Include="UI\IGwmWindow.cs" />
@@ -899,6 +910,7 @@
     </Compile>
     <Compile Include="UI\TaskbarList.cs" />
     <Compile Include="UI\ToolStripRendering\ProExtTsr.cs" />
+    <Compile Include="UI\ToolStripRendering\SimpleColorTableEx.cs" />
     <Compile Include="UI\ToolStripRendering\SystemTsr.cs" />
     <Compile Include="UI\ToolStripRendering\TsrFactory.cs" />
     <Compile Include="UI\ToolStripRendering\KeePassTsr.cs" />
@@ -906,6 +918,9 @@
     <Compile Include="UI\ToolStripRendering\VisualStyleTsr.cs" />
     <Compile Include="UI\ToolStripRendering\Win10Tsr.cs" />
     <Compile Include="UI\ToolStripRendering\Win81Tsr.cs" />
+    <Compile Include="UI\UIElementSearchBoxEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="UI\UISystemFonts.cs" />
     <Compile Include="UI\VistaTaskDialog.cs">
     </Compile>
@@ -1054,6 +1069,9 @@
       <SubType>Designer</SubType>
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Forms\OptionsEnfForm.resx">
+      <DependentUpon>OptionsEnfForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\OptionsForm.resx">
       <SubType>Designer</SubType>
       <DependentUpon>OptionsForm.cs</DependentUpon>
@@ -1185,6 +1203,7 @@
     <Compile Include="Util\NetUtil.cs" />
     <Compile Include="Util\PrintUtil.cs" />
     <Compile Include="Util\PwGeneratorUtil.cs" />
+    <Compile Include="Util\RegUtil.cs" />
     <Compile Include="Util\SearchUtil.cs" />
     <Compile Include="Util\SendInputEx.cs" />
     <Compile Include="Util\SendInputExt\ISiEngine.cs" />
@@ -1210,7 +1229,7 @@
     <Compile Include="Util\TextSimilarity.cs" />
     <Compile Include="Util\UpdateCheckEx.cs" />
     <Compile Include="Util\WinUtil.cs" />
-    <Compile Include="Util\XmlSerialization\XmlSerializerEx.Gen.cs" />
+    <Compile Include="Util\XmlSerialization\XmlSerializerEx.Generated.cs" />
     <Compile Include="Util\XmlUtil.cs" />
     <Compile Include="Util\XmlSerialization\XmlSerializerEx.cs" />
     <Compile Include="Util\XmlUtil.Merge.cs" />
@@ -1443,6 +1462,6 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>"$(FrameworkSDKDir)bin\sgen.exe" /assembly:"$(TargetPath)" /force /nologo /compiler:/keycontainer:VS_KEY_27A70973F3FC3787 /compiler:/delaysign-</PostBuildEvent>
+    <PostBuildEvent>"$(FrameworkSDKDir)bin\sgen.exe" /assembly:"$(TargetPath)" /force /nologo /compiler:/keycontainer:VS_KEY_8C26407DBC890166 /compiler:/delaysign-</PostBuildEvent>
   </PropertyGroup>
 </Project>

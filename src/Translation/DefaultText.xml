@@ -10,6 +10,9 @@
 		<Data Name="Action">
 			<Value>Action</Value>
 		</Data>
+		<Data Name="ActionLower">
+			<Value>action</Value>
+		</Data>
 		<Data Name="ActivateDatabaseTab">
 			<Value>Activate database (select tab)</Value>
 		</Data>
@@ -33,6 +36,9 @@
 		</Data>
 		<Data Name="AddStringFieldDesc">
 			<Value>Create a new string field for the current entry.</Value>
+		</Data>
+		<Data Name="AdminPassword">
+			<Value>Administrator password</Value>
 		</Data>
 		<Data Name="Advanced">
 			<Value>Advanced</Value>
@@ -60,6 +66,12 @@
 		</Data>
 		<Data Name="AllSupportedFiles">
 			<Value>All Supported Files</Value>
+		</Data>
+		<Data Name="AllUsers">
+			<Value>All Users</Value>
+		</Data>
+		<Data Name="AlwaysP">
+			<Value>always '{PARAM}'</Value>
 		</Data>
 		<Data Name="Application">
 			<Value>Application</Value>
@@ -259,6 +271,9 @@
 		<Data Name="BitsEx">
 			<Value>{PARAM} bits</Value>
 		</Data>
+		<Data Name="Blue">
+			<Value>Blue</Value>
+		</Data>
 		<Data Name="Bold">
 			<Value>Bold</Value>
 		</Data>
@@ -334,6 +349,9 @@
 		<Data Name="ClipboardClearOnExit">
 			<Value>Clear clipboard when closing KeePass</Value>
 		</Data>
+		<Data Name="ClipboardClearTime">
+			<Value>&amp;Clipboard auto-clear time (seconds; main entry list)</Value>
+		</Data>
 		<Data Name="ClipboardDataCopied">
 			<Value>Data copied to clipboard.</Value>
 		</Data>
@@ -398,10 +416,28 @@
 			<Value>Condition</Value>
 		</Data>
 		<Data Name="ConfigAffectAdmin">
-			<Value>Changes to the configuration/policy will affect you and all users of this KeePass installation.</Value>
+			<Value>Changes to the configuration/policy will affect all users of this KeePass installation.</Value>
 		</Data>
 		<Data Name="ConfigAffectUser">
-			<Value>Changes to the configuration/policy will only affect you. Policy flags that are enforced by the administrator are reset after restarting KeePass.</Value>
+			<Value>Changes to the configuration/policy will affect only you. Policy flags that are enforced by the administrator are reset when restarting KeePass.</Value>
+		</Data>
+		<Data Name="ConfigEnfAdminUac">
+			<Value>Write access to the enforced configuration file may require administrator permission. A User Account Control dialog will be displayed, if necessary.</Value>
+		</Data>
+		<Data Name="ConfigEnfAllUsers">
+			<Value>The enforced configuration file applies to all users who use this KeePass installation. Therefore, make sure that your items are suitable for all users.</Value>
+		</Data>
+		<Data Name="ConfigEnfChangeValue">
+			<Value>If you want to change the value of an enforced option, deactivate the enforcement (using this dialog), change the value (using the options dialog) and activate the enforcement again (using this dialog).</Value>
+		</Data>
+		<Data Name="ConfigEnfDialogSubset">
+			<Value>This dialog supports only a subset of all options. More options can be enforced by editing the enforced configuration file using an XML/text editor.</Value>
+		</Data>
+		<Data Name="ConfigEnfEdit">
+			<Value>Edit the enforced configuration file.</Value>
+		</Data>
+		<Data Name="ConfigEnfSaveItemsAbout">
+			<Value>You are about to save items to the enforced configuration file.</Value>
 		</Data>
 		<Data Name="ConfigError">
 			<Value>Configuration error</Value>
@@ -435,6 +471,9 @@
 		</Data>
 		<Data Name="ConfigureOnNewDatabase3">
 			<Value>Configure New Database</Value>
+		</Data>
+		<Data Name="ConfirmExport">
+			<Value>Confirm Export</Value>
 		</Data>
 		<Data Name="ConsiderDashesEq">
 			<Value>Consider similar dashes as identical</Value>
@@ -583,6 +622,9 @@
 		<Data Name="Cut">
 			<Value>Cut</Value>
 		</Data>
+		<Data Name="Dark">
+			<Value>Dark</Value>
+		</Data>
 		<Data Name="Data">
 			<Value>Data</Value>
 		</Data>
@@ -611,7 +653,7 @@
 			<Value>Here you can maintain the currently open database.</Value>
 		</Data>
 		<Data Name="DatabaseModifiedNoDot">
-			<Value>The current database file has been modified</Value>
+			<Value>The database has been modified</Value>
 		</Data>
 		<Data Name="DatabaseNamePrompt">
 			<Value>Enter a name for the database or leave it empty.</Value>
@@ -758,7 +800,7 @@
 			<Value>&amp;Edit Entry...</Value>
 		</Data>
 		<Data Name="EditEntryDesc">
-			<Value>You're editing an existing entry.</Value>
+			<Value>You are editing an existing entry.</Value>
 		</Data>
 		<Data Name="EditEntryQuickCmd">
 			<Value>Edit Entry (&amp;Quick)</Value>
@@ -826,6 +868,12 @@
 		<Data Name="EndsWith">
 			<Value>Ends with</Value>
 		</Data>
+		<Data Name="Enforce">
+			<Value>Enforce</Value>
+		</Data>
+		<Data Name="EnforceOptions">
+			<Value>Enforce Options</Value>
+		</Data>
 		<Data Name="EnterCompositeKey">
 			<Value>Enter Master Key</Value>
 		</Data>
@@ -889,6 +937,9 @@
 		<Data Name="ExpiredEntriesCanMatch">
 			<Value>Expired entries can match</Value>
 		</Data>
+		<Data Name="ExpiryDefaultDays">
+			<Value>By default, &amp;new entries expire in the following number of days</Value>
+		</Data>
 		<Data Name="ExpiryTime">
 			<Value>Expiry Time</Value>
 		</Data>
@@ -897,6 +948,9 @@
 		</Data>
 		<Data Name="Export">
 			<Value>Export</Value>
+		</Data>
+		<Data Name="ExportCmd">
+			<Value>&amp;Export...</Value>
 		</Data>
 		<Data Name="ExportEntriesCmd">
 			<Value>&amp;Export Entries...</Value>
@@ -966,6 +1020,9 @@
 		</Data>
 		<Data Name="File">
 			<Value>File</Value>
+		</Data>
+		<Data Name="FileArgsDetailsHint">
+			<Value>Click on 'Details' if you want to see the compiled file path/arguments (data is not hidden using asterisks).</Value>
 		</Data>
 		<Data Name="FileChanged">
 			<Value>The file on disk/server has changed since it was loaded. Probably someone else has edited and saved the database.</Value>
@@ -1321,9 +1378,6 @@
 		<Data Name="InvalidUrl">
 			<Value>The specified URL is invalid.</Value>
 		</Data>
-		<Data Name="InvalidUserPassword">
-			<Value>The specified user name / password combination is invalid.</Value>
-		</Data>
 		<Data Name="IOConnection">
 			<Value>I/O Connection</Value>
 		</Data>
@@ -1332,6 +1386,15 @@
 		</Data>
 		<Data Name="Italic">
 			<Value>Italic</Value>
+		</Data>
+		<Data Name="ItemsCheckEnable">
+			<Value>If you want to use these items, open the corresponding dialogs, check the items (with regard to security, privacy, functionality, compatibility, etc.) and enable them.</Value>
+		</Data>
+		<Data Name="ItemsDisabled">
+			<Value>The following items have been disabled:</Value>
+		</Data>
+		<Data Name="ItemsNoSensitiveEsp">
+			<Value>Especially, the items should not contain any sensitive data (for security/privacy reasons).</Value>
 		</Data>
 		<Data Name="Iterations">
 			<Value>Iterations</Value>
@@ -1453,6 +1516,15 @@
 		<Data Name="KeyProvIncmpWithSDHint">
 			<Value>If you want to use the selected key provider, you have to disable the secure desktop option in 'Tools' -&gt; 'Options' -&gt; tab 'Security'.</Value>
 		</Data>
+		<Data Name="KeyTransformDefaultsQ">
+			<Value>Do you want to set them to the current default values (recommended)?</Value>
+		</Data>
+		<Data Name="KeyTransformWeak">
+			<Value>The key transformation settings of the database are weak.</Value>
+		</Data>
+		<Data Name="KeyTransformWeakWarning">
+			<Value>Show warning when the key transformation settings are weak</Value>
+		</Data>
 		<Data Name="LanguageSelected">
 			<Value>The selected language has been activated. KeePass must be restarted in order to load the language.</Value>
 		</Data>
@@ -1480,6 +1552,9 @@
 		<Data Name="LatestVersionWeb">
 			<Value>The latest KeePass version can be found on the KeePass website</Value>
 		</Data>
+		<Data Name="Light">
+			<Value>Light</Value>
+		</Data>
 		<Data Name="LimitSingleInstance">
 			<Value>Limit to single instance</Value>
 		</Data>
@@ -1497,6 +1572,12 @@
 		</Data>
 		<Data Name="LngInAppDirQ">
 			<Value>Do you want to open the application directory (in order to move or delete language files)?</Value>
+		</Data>
+		<Data Name="LockAfterGlobalTime">
+			<Value>L&amp;ock workspace after global user inactivity (seconds)</Value>
+		</Data>
+		<Data Name="LockAfterTime">
+			<Value>&amp;Lock workspace after KeePass inactivity (seconds)</Value>
 		</Data>
 		<Data Name="Locked">
 			<Value>Locked</Value>
@@ -1547,7 +1628,7 @@
 			<Value>Master key changed</Value>
 		</Data>
 		<Data Name="MasterKeyChangeForce">
-			<Value>The master key for this database has been used for quite a while and must be changed now.</Value>
+			<Value>The master key for this database has been used for a while and must be changed now.</Value>
 		</Data>
 		<Data Name="MasterKeyChangeInfo">
 			<Value>Click [OK] to open the master key changing dialog.</Value>
@@ -1556,7 +1637,7 @@
 			<Value>Do you want to change the master key now?</Value>
 		</Data>
 		<Data Name="MasterKeyChangeRec">
-			<Value>The master key for this database has been used for quite a while and it is recommended to change it now.</Value>
+			<Value>The master key for this database has been used for a while and it is recommended to change it now.</Value>
 		</Data>
 		<Data Name="MasterKeyComponents">
 			<Value>The master key for this database file consists of the following components:</Value>
@@ -1819,6 +1900,12 @@
 		<Data Name="OptimizeForScreenReader">
 			<Value>Optimize for screen reader (activate only if you are using a screen reader)</Value>
 		</Data>
+		<Data Name="OptionActivateAboutTo">
+			<Value>You are about to activate the following option:</Value>
+		</Data>
+		<Data Name="OptionActivateConfirm">
+			<Value>Are you sure you want to activate the option?</Value>
+		</Data>
 		<Data Name="OptionReqOn">
 			<Value>For this operation, the following option must be turned on:</Value>
 		</Data>
@@ -1948,6 +2035,9 @@
 		<Data Name="PickIcon">
 			<Value>Pick an icon.</Value>
 		</Data>
+		<Data Name="PlhSprConfirm">
+			<Value>Show confirmation dialog when evaluating/replacing a '{PARAM}' placeholder</Value>
+		</Data>
 		<Data Name="Plugin">
 			<Value>Plugin</Value>
 		</Data>
@@ -1986,6 +2076,9 @@
 		</Data>
 		<Data Name="PluginUpdateHint">
 			<Value>Have a look at the plugin's website for an appropriate version.</Value>
+		</Data>
+		<Data Name="Policy">
+			<Value>Policy</Value>
 		</Data>
 		<Data Name="PolicyAutoTypeDesc">
 			<Value>Allow auto-typing entries to other windows.</Value>
@@ -2044,6 +2137,12 @@
 		<Data Name="PreReleaseVersion">
 			<Value>Pre-release version</Value>
 		</Data>
+		<Data Name="PreventScreenCapture">
+			<Value>Prevent certain screen captures</Value>
+		</Data>
+		<Data Name="PreventScreenCaptureNote">
+			<Value>This may also prevent legitimate other software (remote desktop solutions, accessibility tools such as screen magnifiers, etc.) from seeing KeePass windows.</Value>
+		</Data>
 		<Data Name="Print">
 			<Value>Print</Value>
 		</Data>
@@ -2082,6 +2181,9 @@
 		</Data>
 		<Data Name="PwGenOpen">
 			<Value>Open Password Generator...</Value>
+		</Data>
+		<Data Name="PwGenProfiles">
+			<Value>Password Generator Profiles</Value>
 		</Data>
 		<Data Name="Quality">
 			<Value>Quality</Value>
@@ -2158,6 +2260,9 @@
 		<Data Name="RemoteHostReachable">
 			<Value>Remote host is reachable (ping)</Value>
 		</Data>
+		<Data Name="RenameCmd">
+			<Value>&amp;Rename...</Value>
+		</Data>
 		<Data Name="RepairCmd">
 			<Value>&amp;Repair</Value>
 		</Data>
@@ -2196,6 +2301,9 @@
 		</Data>
 		<Data Name="RootDirectory">
 			<Value>Root Directory</Value>
+		</Data>
+		<Data Name="RunOpenFileQ">
+			<Value>Are you sure you want to run/open the file?</Value>
 		</Data>
 		<Data Name="SameKeybLayout">
 			<Value>Ensure same keyboard layouts during auto-type</Value>
@@ -2422,8 +2530,8 @@
 		<Data Name="SpecialKeys">
 			<Value>Special Keys</Value>
 		</Data>
-		<Data Name="SslCertsAcceptInvalid">
-			<Value>Accept invalid SSL certificates (self-signed, expired, ...)</Value>
+		<Data Name="SprPlhQ">
+			<Value>Are you sure you want to evaluate/replace the placeholder?</Value>
 		</Data>
 		<Data Name="StandardExpireSelect">
 			<Value>Select one of the standard expiry times</Value>
@@ -2544,6 +2652,9 @@
 		</Data>
 		<Data Name="Title">
 			<Value>Title</Value>
+		</Data>
+		<Data Name="TlsCertsAcceptInvalid">
+			<Value>Accept invalid TLS/SSL certificates (self-signed, expired, ...)</Value>
 		</Data>
 		<Data Name="Toggle">
 			<Value>Toggle</Value>
@@ -2671,6 +2782,9 @@
 		<Data Name="UpToDate">
 			<Value>Up to date</Value>
 		</Data>
+		<Data Name="UriRunConfirm">
+			<Value>Show confirmation dialog when running/opening a '{PARAM}' URI</Value>
+		</Data>
 		<Data Name="Url">
 			<Value>URL</Value>
 		</Data>
@@ -2709,9 +2823,6 @@
 		</Data>
 		<Data Name="UserName">
 			<Value>User Name</Value>
-		</Data>
-		<Data Name="UserNamePrompt">
-			<Value>Enter the user name:</Value>
 		</Data>
 		<Data Name="UserNameStc">
 			<Value>User name</Value>
@@ -2753,7 +2864,7 @@
 			<Value>&amp;View</Value>
 		</Data>
 		<Data Name="ViewEntryDesc">
-			<Value>You're viewing an entry.</Value>
+			<Value>You are viewing an entry.</Value>
 		</Data>
 		<Data Name="ViewEntryReadOnly">
 			<Value>View Entry (Read-Only)</Value>
@@ -2775,12 +2886,6 @@
 		</Data>
 		<Data Name="WebBrowser">
 			<Value>Web Browser</Value>
-		</Data>
-		<Data Name="WebSiteLogin">
-			<Value>Web Site Login</Value>
-		</Data>
-		<Data Name="WebSites">
-			<Value>Web Sites</Value>
 		</Data>
 		<Data Name="WindowsFavorites">
 			<Value>Windows Favorites</Value>
@@ -2911,6 +3016,9 @@
 		<Data Name="FinalKeyCreationFailed">
 			<Value>Failed to create the final encryption/decryption key!</Value>
 		</Data>
+		<Data Name="FollowRedirects">
+			<Value>Follow redirects</Value>
+		</Data>
 		<Data Name="FrameworkNotImplExcp">
 			<Value>The .NET Framework/runtime under which KeePass is currently running does not support this operation.</Value>
 		</Data>
@@ -2975,7 +3083,7 @@
 			<Value>An unknown error occurred.</Value>
 		</Data>
 		<Data Name="UnknownHeaderId">
-			<Value>Unknown header ID!</Value>
+			<Value>Unknown header ID</Value>
 		</Data>
 		<Data Name="UnknownKdf">
 			<Value>Unknown key derivation function!</Value>

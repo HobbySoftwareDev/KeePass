@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -77,20 +77,23 @@ namespace KeePass.DataExchange.Formats
 			return TryBeginImport();
 		}
 
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
 			string strTempFile = Program.TempFilesPool.GetTempFileName();
 
-			BinaryReader br = new BinaryReader(sInput);
-			byte[] pb = br.ReadBytes((int)sInput.Length);
-			br.Close();
-			File.WriteAllBytes(strTempFile, pb);
+			try
+			{
+				using(FileStream fs = new FileStream(strTempFile, FileMode.Create,
+					FileAccess.Write, FileShare.None))
+				{
+					MemUtil.CopyStream(sInput, fs);
+				}
 
-			KdbFile kdb = new KdbFile(pwStorage, slLogger);
-			kdb.Load(strTempFile);
-
-			Program.TempFilesPool.Delete(strTempFile);
+				KdbFile kdb = new KdbFile(pdStorage, slLogger);
+				kdb.Load(strTempFile);
+			}
+			finally { Program.TempFilesPool.Delete(strTempFile); }
 		}
 
 		public override bool Export(PwExportInfo pwExportInfo, Stream sOutput,
@@ -109,9 +112,10 @@ namespace KeePass.DataExchange.Formats
 				sOutput.Write(pbKdb, 0, pbKdb.Length);
 				MemUtil.ZeroByteArray(pbKdb);
 			}
-			catch(Exception exKdb)
+			catch(Exception ex)
 			{
-				if(slLogger != null) slLogger.SetText(exKdb.Message, LogStatusType.Error);
+				if(slLogger != null)
+					slLogger.SetText(StrUtil.FormatException(ex, null), LogStatusType.Error);
 
 				return false;
 			}

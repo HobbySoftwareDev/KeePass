@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ namespace KeePass.App
 
 	public static class AppIcons
 	{
-		private static Dictionary<string, Icon> g_dCache = new Dictionary<string, Icon>();
+		private static readonly Dictionary<string, Icon> g_dCache = new Dictionary<string, Icon>();
 		private static readonly object g_oCacheSync = new object();
 
 		private const int g_hMain = 225; // Average hue of the main icon in degrees

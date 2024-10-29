@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,7 +40,6 @@ using KeePass.Util.Spr;
 
 using KeePassLib;
 using KeePassLib.Collections;
-using KeePassLib.Cryptography;
 using KeePassLib.Delegates;
 using KeePassLib.Security;
 using KeePassLib.Utility;
@@ -66,7 +65,7 @@ namespace KeePass.Forms
 		private PwIcon m_pwEntryIcon = PwIcon.Key;
 		private PwUuid m_pwCustomIconID = PwUuid.Zero;
 		private ImageList m_ilIcons = null;
-		private List<PwUuid> m_lOrgCustomIconIDs = new List<PwUuid>();
+		private readonly List<PwUuid> m_lOrgCustomIconIDs = new List<PwUuid>();
 
 		private bool m_bTouchedOnce = false;
 
@@ -74,16 +73,15 @@ namespace KeePass.Forms
 		private bool m_bForceClosing = false;
 		private bool m_bUrlOverrideWarning = false;
 
-		private PwInputControlGroup m_icgPassword = new PwInputControlGroup();
+		private readonly PwInputControlGroup m_icgPassword = new PwInputControlGroup();
 		private PwGeneratorMenu m_pgmPassword = null;
-		private RichTextBoxContextMenu m_ctxNotes = new RichTextBoxContextMenu();
-		private ExpiryControlGroup m_cgExpiry = new ExpiryControlGroup();
-		private Image m_imgTools = null;
+		private readonly RichTextBoxContextMenu m_ctxNotes = new RichTextBoxContextMenu();
+		private readonly ExpiryControlGroup m_cgExpiry = new ExpiryControlGroup();
 		private Image m_imgStdExpire = null;
-		private List<Image> m_lOverrideUrlIcons = new List<Image>();
-
 		private CustomContextMenuStripEx m_ctxBinOpen = null;
 		private DynamicMenu m_dynBinOpen = null;
+		private readonly List<Image> m_lOverrideUrlIcons = new List<Image>();
+		private Image m_imgTools = null;
 
 		private const PwIcon m_pwObjectProtected = PwIcon.PaperLocked;
 		private const PwIcon m_pwObjectPlainText = PwIcon.PaperNew;
@@ -178,6 +176,11 @@ namespace KeePass.Forms
 			get { return m_ctxAutoType; }
 		}
 
+		public ContextMenuStrip HistoryContextMenu
+		{
+			get { return m_ctxHst; }
+		}
+
 		private PwEntryFormTab m_eftInit = PwEntryFormTab.None;
 		[Browsable(false)]
 		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -211,6 +214,7 @@ namespace KeePass.Forms
 			Program.Translation.ApplyTo("KeePass.Forms.PwEntryForm.m_ctxStr", m_ctxStr.Items);
 			Program.Translation.ApplyTo("KeePass.Forms.PwEntryForm.m_ctxBinAttach", m_ctxBinAttach.Items);
 			Program.Translation.ApplyTo("KeePass.Forms.PwEntryForm.m_ctxAutoType", m_ctxAutoType.Items);
+			Program.Translation.ApplyTo("KeePass.Forms.PwEntryForm.m_ctxHst", m_ctxHst.Items);
 		}
 
 		public void InitEx(PwEntry pwEntry, PwEditMode pwMode, PwDatabase pwDatabase,
@@ -649,6 +653,18 @@ namespace KeePass.Forms
 			m_lvHistory.Columns.Add(KPRes.Modified);
 			m_lvHistory.Columns.Add(KPRes.Size, 72, HorizontalAlignment.Right);
 
+			UIUtil.AssignShortcut(m_ctxHstSelectAll, Keys.Control | Keys.A, null, true);
+			GAction<KeyEventArgs, bool> fOnKey = delegate(KeyEventArgs e, bool bDown)
+			{
+				if((e != null) && e.Control && !e.Alt && (e.KeyCode == Keys.A))
+				{
+					UIUtil.SetHandled(e, true);
+					if(bDown) OnCtxHstSelectAll(null, EventArgs.Empty);
+				}
+			};
+			m_lvHistory.KeyDown += ((sender, e) => { fOnKey(e, true); });
+			m_lvHistory.KeyUp += ((sender, e) => { fOnKey(e, false); });
+
 			// UpdateHistoryList(false, false); // Updated on tab switch
 
 			if(!bStd || ((m_pwEditMode == PwEditMode.AddNewEntry) &&
@@ -857,9 +873,8 @@ namespace KeePass.Forms
 				m_cbHidePassword.Checked = (Program.Config.UI.Hiding.HideInEntryWindow || bForceHide);
 			else
 			{
-				AceColumn colPw = Program.Config.MainWindow.FindColumn(AceColumnType.Password);
-				m_cbHidePassword.Checked = (((colPw != null) ? colPw.HideWithAsterisks :
-					true) || bForceHide);
+				AceColumn c = Program.Config.MainWindow.FindColumn(AceColumnType.Password);
+				m_cbHidePassword.Checked = (((c == null) || c.HideWithAsterisks) || bForceHide);
 			}
 
 			InitEntryTab();
@@ -1047,6 +1062,9 @@ namespace KeePass.Forms
 			m_btnHistoryDelete.Enabled = (bHistory && (nHistorySel >= 1) && bHistoricOnly);
 			m_btnHistoryRestore.Enabled = (bHistory && (nHistorySel == 1) && bHistoricOnly &&
 				!HasModifiedEntryEx());
+
+			bool bHistoryEntries = (bHistory && (m_vHistory.UCount != 0));
+			UIUtil.SetEnabledFast(bHistoryEntries, m_ctxHstSelectAll, m_ctxHstDeleteAll);
 		}
 
 		private bool SaveEntry(PwEntry peTarget, bool bValidate)
@@ -1173,11 +1191,7 @@ namespace KeePass.Forms
 
 			m_icgPassword.Release();
 
-			if(m_pgmPassword != null)
-			{
-				m_pgmPassword.Dispose();
-				m_pgmPassword = null;
-			}
+			if(m_pgmPassword != null) { m_pgmPassword.Dispose(); m_pgmPassword = null; }
 			else { Debug.Assert(false); }
 
 			m_ctxNotes.Detach();
@@ -1297,10 +1311,11 @@ namespace KeePass.Forms
 			}
 			else // nSelCount > 1
 			{
-				FolderBrowserDialog fbd = UIUtil.CreateFolderBrowserDialog(KPRes.AttachmentsSave);
-
-				if(fbd.ShowDialog() == DialogResult.OK)
+				using(FolderBrowserDialog fbd = UIUtil.CreateFolderBrowserDialog(
+					KPRes.AttachmentsSave))
 				{
+					if(fbd.ShowDialog() != DialogResult.OK) return;
+
 					string strRootPath = UrlUtil.EnsureTerminatingSeparator(
 						fbd.SelectedPath, false);
 
@@ -1308,7 +1323,6 @@ namespace KeePass.Forms
 						SaveAttachmentTo(lvi, strRootPath + UrlUtil.GetSafeFileName(
 							lvi.Text), true);
 				}
-				fbd.Dispose();
 			}
 		}
 
@@ -1452,6 +1466,11 @@ namespace KeePass.Forms
 			UpdateHistoryList(true, true);
 		}
 
+		private void OnBtnHistoryMore(object sender, EventArgs e)
+		{
+			m_ctxHst.ShowEx(m_btnHistoryMore);
+		}
+
 		private void OnBtnHistoryRestore(object sender, EventArgs e)
 		{
 			List<EfxHistoryItem> l = GetSelectedHistoryItems();
@@ -1478,6 +1497,27 @@ namespace KeePass.Forms
 			m_bTouchedOnce = true;
 			m_bForceClosing = true;
 			this.DialogResult = DialogResult.OK; // Doesn't invoke OnBtnOK
+		}
+
+		private void OnCtxHstSelectAll(object sender, EventArgs e)
+		{
+			foreach(ListViewItem lvi in m_lvHistory.Items)
+			{
+				EfxHistoryItem hi = ((lvi != null) ? (lvi.Tag as EfxHistoryItem) : null);
+				if(hi == null) { Debug.Assert(false); continue; }
+
+				lvi.Selected = hi.IsHistoric;
+			}
+
+			m_lvHistory.Select();
+		}
+
+		private void OnCtxHstDeleteAll(object sender, EventArgs e)
+		{
+			if(!m_ctxHstDeleteAll.Enabled) { Debug.Assert(false); return; }
+
+			m_vHistory.Clear();
+			UpdateHistoryList(true, true);
 		}
 
 		private void OnHistorySelectedIndexChanged(object sender, EventArgs e)

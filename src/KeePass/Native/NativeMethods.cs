@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,6 +45,10 @@ namespace KeePass.Native
 		[DllImport("User32.dll")]
 		internal static extern IntPtr SendMessage(IntPtr hWnd, int nMsg,
 			IntPtr wParam, IntPtr lParam);
+
+		[DllImport("User32.dll", EntryPoint = "SendMessage")]
+		private static extern IntPtr SendMessagePoint(IntPtr hWnd, int nMsg,
+			IntPtr wParam, ref POINT pt);
 
 		[DllImport("User32.dll", EntryPoint = "SendMessage")]
 		internal static extern IntPtr SendMessageHDItem(IntPtr hWnd, int nMsg,
@@ -116,6 +120,11 @@ namespace KeePass.Native
 			SetLastError = true)]
 		private static extern int GetWindowText(IntPtr hWnd, IntPtr lpString,
 			int nMaxCount);
+
+		[DllImport("User32.dll", CharSet = CharSet.Auto, ExactSpelling = false,
+			SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		internal static extern bool SetWindowText(IntPtr hWnd, string lpString);
 
 		[DllImport("User32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -373,13 +382,13 @@ namespace KeePass.Native
 		// [return: MarshalAs(UnmanagedType.Bool)]
 		// internal static extern bool SHChangeNotifyDeregister(uint ulID);
 
-		[DllImport("User32.dll")]
+		[DllImport("User32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		private static extern bool GetScrollInfo(IntPtr hwnd, int fnBar,
+		private static extern bool GetScrollInfo(IntPtr hwnd, int nBar,
 			ref SCROLLINFO lpsi);
 
 		// [DllImport("User32.dll")]
-		// private static extern int SetScrollInfo(IntPtr hwnd, int fnBar,
+		// private static extern int SetScrollInfo(IntPtr hwnd, int nBar,
 		//	[In] ref SCROLLINFO lpsi, [MarshalAs(UnmanagedType.Bool)] bool fRedraw);
 
 		// [DllImport("User32.dll")]
@@ -421,6 +430,10 @@ namespace KeePass.Native
 			uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo,
 			uint uFlags);
 
+		[DllImport("ComCtl32.dll")]
+		internal static extern int LoadIconWithScaleDown(IntPtr hInst,
+			IntPtr pszName, int cx, int cy, ref IntPtr phIco);
+
 		[DllImport("User32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool DestroyIcon(IntPtr hIcon);
@@ -436,6 +449,11 @@ namespace KeePass.Native
 
 		[DllImport("User32.dll")]
 		internal static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+		[DllImport("User32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate,
+			IntPtr hrgnUpdate, [MarshalAs(UnmanagedType.U4)] RedrawWindowFlags flags);
 
 		[DllImport("Gdi32.dll")]
 		internal static extern int GetDeviceCaps(IntPtr hdc, int nIndex);

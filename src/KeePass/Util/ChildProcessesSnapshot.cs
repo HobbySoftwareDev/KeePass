@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,13 +19,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Runtime.InteropServices;
-using System.Threading;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 
 using KeePass.Native;
-using KeePass.Util;
 
 using KeePassLib.Utility;
 
@@ -171,22 +170,23 @@ namespace KeePass.Util
 
 				if(ti.Delay > 0) Thread.Sleep(ti.Delay);
 
-				Process p = Process.GetProcessById((int)ti.ProcessId);
-				if(p == null) { Debug.Assert(false); return; }
-
-				// Verify that likely it's indeed the correct process
-				if(!string.IsNullOrEmpty(ti.ExeName))
+				using(Process p = Process.GetProcessById((int)ti.ProcessId))
 				{
-					string str = GetExeName(p.MainModule.FileName);
-					if(!str.Equals(ti.ExeName, StrUtil.CaseIgnoreCmp))
-					{
-						Debug.Assert(false);
-						return;
-					}
-				}
+					if(p == null) { Debug.Assert(false); return; }
 
-				p.Kill();
-				p.Close();
+					// Verify that likely it's indeed the correct process
+					if(!string.IsNullOrEmpty(ti.ExeName))
+					{
+						string str = GetExeName(p.MainModule.FileName);
+						if(!str.Equals(ti.ExeName, StrUtil.CaseIgnoreCmp))
+						{
+							Debug.Assert(false);
+							return;
+						}
+					}
+
+					p.Kill();
+				}
 			}
 			catch(ArgumentException) { } // Not running
 			catch(Exception) { Debug.Assert(false); }

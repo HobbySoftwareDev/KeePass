@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,13 +23,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Xml;
-using System.Xml.Serialization;
 
 using KeePass.Resources;
 
 using KeePassLib;
 using KeePassLib.Interfaces;
-using KeePassLib.Security;
 using KeePassLib.Utility;
 
 namespace KeePass.DataExchange.Formats
@@ -46,25 +44,10 @@ namespace KeePass.DataExchange.Formats
 
 		public override bool ImportAppendsToRootGroupOnly { get { return true; } }
 
-		private const string ElemRoot = "xml";
-		private const string ElemEntries = "entries";
-		private const string ElemEntry = "entry";
-
-		private const string AttrUser = "user";
-		private const string AttrPassword = "password";
-		private const string AttrURL = "host";
-		private const string AttrUserFieldName = "userFieldName";
-		private const string AttrPasswordFieldName = "passFieldName";
-
-		private const string DbUserFieldName = "FieldID_UserName";
-		private const string DbPasswordFieldName = "FieldID_Password";
-
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
-			StreamReader sr = new StreamReader(sInput, Encoding.Default);
-			string strDoc = sr.ReadToEnd();
-			sr.Close();
+			string strDoc = MemUtil.ReadString(sInput, Encoding.Default);
 
 			// Fix '<' characters, for version 1.0.5
 			int nIndex = strDoc.IndexOf('<');
@@ -82,7 +65,7 @@ namespace KeePass.DataExchange.Formats
 			}
 
 			// Fix '>' characters, for version 1.0.5
-			nIndex = strDoc.IndexOf('>');
+			nIndex = strDoc.IndexOf('>', 3);
 			while(nIndex >= 0)
 			{
 				char chPrev = strDoc[nIndex - 1];
@@ -97,74 +80,58 @@ namespace KeePass.DataExchange.Formats
 				nIndex = strDoc.IndexOf('>', nIndex + 1);
 			}
 
-			MemoryStream ms = new MemoryStream(StrUtil.Utf8.GetBytes(strDoc), false);
-			XmlDocument xmlDoc = XmlUtilEx.CreateXmlDocument();
-			xmlDoc.Load(ms);
-			ms.Close();
+			XmlDocument xmlDoc = XmlUtilEx.LoadXmlDocumentFromString(strDoc);
 
 			XmlNode xmlRoot = xmlDoc.DocumentElement;
-			if(xmlRoot.Name != ElemRoot)
+			if(xmlRoot.Name != "xml")
 				throw new FormatException("Invalid root element!");
 
 			foreach(XmlNode xmlChild in xmlRoot.ChildNodes)
 			{
-				if(xmlChild.Name == ElemEntries)
-					ImportEntries(xmlChild, pwStorage);
+				if(xmlChild.Name == "entries")
+					ImportEntries(xmlChild, pdStorage);
 				else { Debug.Assert(false); }
 			}
 		}
 
-		private static void ImportEntries(XmlNode xmlNode, PwDatabase pwStorage)
+		private static void ImportEntries(XmlNode xmlNode, PwDatabase pd)
 		{
 			foreach(XmlNode xmlChild in xmlNode)
 			{
-				if(xmlChild.Name == ElemEntry)
-					ImportEntry(xmlChild, pwStorage);
+				if(xmlChild.Name == "entry")
+					ImportEntry(xmlChild, pd);
 				else { Debug.Assert(false); }
 			}
 		}
 
-		private static void ImportEntry(XmlNode xmlNode, PwDatabase pwStorage)
+		private static void ImportEntry(XmlNode xmlNode, PwDatabase pd)
 		{
 			PwEntry pe = new PwEntry(true, true);
-			pwStorage.RootGroup.AddEntry(pe, true);
+			pd.RootGroup.AddEntry(pe, true);
 
-			XmlAttributeCollection col = xmlNode.Attributes;
-			if(col == null) return;
+			XmlAttributeCollection xac = xmlNode.Attributes;
+			if(xac == null) return;
 
-			XmlNode xmlAttrib;
-			xmlAttrib = col.GetNamedItem(AttrUser);
-			if(xmlAttrib != null) pe.Strings.Set(PwDefs.UserNameField, new ProtectedString(
-				pwStorage.MemoryProtection.ProtectUserName, PctDecode(xmlAttrib.Value)));
-			else { Debug.Assert(false); }
+			ImportString(pe, PwDefs.UserNameField, xac, "user", pd);
+			ImportString(pe, PwDefs.PasswordField, xac, "password", pd);
+			ImportString(pe, PwDefs.UrlField, xac, "host", pd);
+			ImportString(pe, "FieldID_UserName", xac, "userFieldName", pd);
+			ImportString(pe, "FieldID_Password", xac, "passFieldName", pd);
+		}
 
-			xmlAttrib = col.GetNamedItem(AttrPassword);
-			if(xmlAttrib != null) pe.Strings.Set(PwDefs.PasswordField, new ProtectedString(
-				pwStorage.MemoryProtection.ProtectPassword, PctDecode(xmlAttrib.Value)));
-			else { Debug.Assert(false); }
-
-			xmlAttrib = col.GetNamedItem(AttrURL);
-			if(xmlAttrib != null) pe.Strings.Set(PwDefs.UrlField, new ProtectedString(
-				pwStorage.MemoryProtection.ProtectUrl, PctDecode(xmlAttrib.Value)));
-			else { Debug.Assert(false); }
-
-			xmlAttrib = col.GetNamedItem(AttrUserFieldName);
-			if(xmlAttrib != null) pe.Strings.Set(DbUserFieldName, new ProtectedString(
-				false, PctDecode(xmlAttrib.Value)));
-			else { Debug.Assert(false); }
-
-			xmlAttrib = col.GetNamedItem(AttrPasswordFieldName);
-			if(xmlAttrib != null) pe.Strings.Set(DbPasswordFieldName, new ProtectedString(
-				false, PctDecode(xmlAttrib.Value)));
+		private static void ImportString(PwEntry pe, string strFieldName,
+			XmlAttributeCollection xac, string strAttribName, PwDatabase pd)
+		{
+			XmlNode xn = xac.GetNamedItem(strAttribName);
+			if(xn != null)
+				ImportUtil.Add(pe, strFieldName, PctDecode(xn.Value), pd);
 			else { Debug.Assert(false); }
 		}
 
 		// For version 1.3.4
-		private static string PctDecode(string strText)
+		private static string PctDecode(string str)
 		{
-			if(string.IsNullOrEmpty(strText)) return string.Empty;
-
-			string str = strText;
+			if(string.IsNullOrEmpty(str)) return string.Empty;
 
 			str = str.Replace("%3C", "<");
 			str = str.Replace("%3E", ">");

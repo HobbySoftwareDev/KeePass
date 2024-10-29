@@ -1,3 +1,297 @@
+2024-10-08: 2.57.1
+- Added options 'Show confirmation dialog when running/opening
+  a cmd:// URI', 'Show confirmation dialog when evaluating/
+  replacing a {CMD:...} placeholder' and 'Show confirmation
+  dialog when evaluating/replacing a {REF:P@...} placeholder
+  (action)' (in 'Tools' -> 'Options' -> tab 'Interface (1)',
+  turned on by default)
+- Added option 'Follow redirects' on the 'Advanced' tab page of
+  the 'Open From URL' dialog
+- When an exception occurs while creating/compiling a PLGX
+  file, streams/readers/writers are now closed immediately
+- When an exception occurs while a plugin performs a certain
+  web request, streams/readers are now closed immediately
+- Refactored code related to streams, import modules, menu/
+  toolbar renderers and registry accesses
+- Removed Spamex.com import module
+- Minor other improvements
+
+2024-06-01: 2.57
+- Added option 'Prevent certain screen captures' (in 'Tools' ->
+  'Options' -> tab 'Security', turned off by default); note
+  that this may also prevent legitimate other software (remote
+  desktop solutions, accessibility tools such as screen
+  magnifiers, etc.) from seeing KeePass windows
+- Added the new option 'Prevent certain screen captures' in the
+  'Enforce Options (All Users)' dialog (in 'Tools' -> 'Advanced
+  Tools' -> 'Enforce Options')
+- Key files can be created on the secure desktop now
+- Added shortcut keys for the 'Copy Group (Encrypted)'
+  (Ctrl+Shift+C) and 'Paste Group' (Ctrl+Shift+V) commands
+- Ctrl+Shift+V can now be used for pasting entries while the
+  group tree has the input focus and vice versa
+- Added 'More' button in the icon picker dialog, which shows a
+  menu that provides two commands: 'Rename' and 'Export'; the
+  menu is also shown as context menu of the custom icons list
+- When importing an icon, the file name without extension is
+  now used as icon name
+- Added option 'Remember password hiding setting' in the main
+  window column configuration dialog (turned off by default)
+- Added support for long paths when running on .NET 4.6.2 or
+  higher
+- Some error messages now contain the type and the HResult of
+  the exception that occured
+- Some error messages are now more detailed when running
+  KeePass with the '-debug' command line option
+- Bitwarden JSON import: two-digit years are now converted to
+  four-digit years
+- Added UIFlags bit for automatically adjusting weak key
+  transformation settings to the current default values
+  (without a confirmation dialog)
+- Added DPI detection on Unix-like systems
+- For applications using KeePass as a library: added a new
+  common initialization method ('CommonInitialize') that allows
+  a custom error handling/reporting
+
+- Databases are now always saved in the KDBX 4/4.1 file format;
+  if you need a KDBX 3.1 file (e.g. for compatibility with an
+  old app), perform an export: main menu 'File' -> 'Export' ->
+  format 'KeePass KDBX (2.34, Old Format)'
+- Auto-Type: improved compatibility with Remote Desktop Client
+  (WSL)
+- In an auto-type error dialog, the sequence is now only
+  displayed if KeePass has been started with the '-debug'
+  command line option
+- Increased maximum length of the main window title
+- Improved handling of shortcut keys in the main window
+- Improved entry data exchange menu update performance
+- After moving a group, KeePass now ensures that the group is
+  visible
+- Improved database save confirmation dialog text
+- When showing the master key creation/change dialog on the
+  secure desktop, trying to perform an operation that is not
+  supported on the secure desktop now results in a simple error
+  message, i.e. it is not possible anymore to choose to cancel
+  the dialog and perform the operation on the normal desktop;
+  this avoids certain accidental data loss scenarios
+- Various improvements in the simple file browser dialog (for
+  the secure desktop)
+- While a hot key control of the options dialog is focused,
+  dialog-specific keyboard shortcuts are now disabled
+- Changed the 'MAC Address' password generator profile such
+  that it always generates a unicast, locally administered MAC
+  address in the SLAP administratively assigned quadrant
+- In the icon picker dialog: moved the 'Export' command into
+  the 'More'/context menu of the custom icons list
+- When running on .NET 4.7 or higher, KeePass now supports all
+  TLS/SSL protocol versions that are supported/enabled by the
+  framework/system
+- Improved error messages for exception chains
+- Improved serialization, deserialization and conversion of
+  nullable booleans
+- Improved deserialization of variant dictionaries
+- Improved application context initialization
+- Improved termination of the program in case of a fatal
+  exception
+- Various UI text improvements
+- Various code optimizations
+- Minor other improvements
+
+2024-02-04: 2.56
+- Added search box in the options dialog (keyboard shortcut
+  Ctrl+F)
+- When pressing the Enter key in the group tree of the main
+  window, the entries of the group are displayed now (this can
+  be useful for instance when the entry list is displaying
+  search results)
+- Added 'More' button on the 'History' tab page of the entry
+  dialog, which shows a menu that provides the following two
+  new commands: 'Select All Historic Entries' and 'Delete All
+  Historic Entries'; the menu is also shown as context menu of
+  the history entries list
+- Added Ctrl+A keyboard shortcut for the 'Select All Historic
+  Entries' command in the entry dialog (the history entries
+  list must have the input focus)
+- Added workaround for Mono window size bug
+- Added accessibility help page
+
+- In the main window, the entry list is now updated when right-
+  clicking onto a group in the group tree
+- Expanding/collapsing a group in the group tree of the main
+  window does not select it anymore
+- The option 'Remember password hiding setting in the main
+  window' is now turned off by default
+- In the auto-type entry selection dialog, comments ({C:...}
+  placeholders) are now removed from the values in the
+  'Sequence' column if the 'Sequence - Comments' column is
+  displayed
+- The view is now restored after syntax highlighting in the
+  sequence box of the auto-type association dialog
+- Reduced flickering in the sequence box of the auto-type
+  association dialog
+- Improved performance of Spr compilations of certain texts
+- Minor process memory protection improvement for the password
+  generator
+- Minor process memory protection improvements for some report
+  dialogs
+- Improved thread safety of message box management
+- Improved UUID object implementation
+- Collection equality testing improvements (for plugins)
+- Various code optimizations
+- Minor other improvements
+
+- In the main window, the entry list is now updated correctly
+  when performing overlapping keypresses into the group tree
+- When cancelling a group drag&drop operation, the group
+  selection is now restored correctly
+- Fixed background of CHM help pages
+
+2023-10-12: 2.55
+- Added 'Compare Entries' command (in the main menu 'Entry' ->
+  'Compare'), which compares the two entries that are selected
+  in the main entry list
+- Added 'Mark Entry for Comparison' and 'Compare Entry with
+  Marked Entry' commands (in the main menu 'Entry' ->
+  'Compare'); these two commands support comparing two entries
+  that are stored in different databases (opened in tabs)
+- Report dialogs can now be closed by pressing the Esc key
+- Added option 'Show warning when the key transformation
+  settings are weak' (in 'Tools' -> 'Options' -> tab
+  'Security', turned on by default)
+- The options in the entry/group duplication dialog are
+  remembered now
+- The options in the HTML export/print dialog are remembered
+  now
+- In dialogs that have a 'Do not show this dialog again' option
+  and multiple commands, the command that will always be used
+  when turning on the option is now mentioned in the dialog
+- Added 'More information' link in the dialog that is displayed
+  when KeePass automatically disables enforcement-requiring
+  items
+- Added {NEWPASSWORD:/#/P/O/} placeholder, which generates a
+  new password for the current entry using the specified
+  pattern P and the option(s) O
+- Added accessible names for some controls (custom keystroke
+  sequence edit control in the auto-type item dialog, filter
+  edit control in report dialogs, a few controls in the
+  password generator dialog; if the option 'Optimize for screen
+  reader' is turned on)
+- Added 'MasterKeyExpiryForce' configuration setting
+- Enhanced Google Chrome passwords CSV import module to support
+  the new format
+- Enhanced mSecure CSV import module to support the new format
+- Enhanced 1Password 1PUX import module to support the new
+  password field/type
+
+- The toolbar in report dialogs is now a tab stop
+- Increased default number of AES-KDF iterations
+- Improved syntax highlighting for {CLIPBOARD-SET:...}
+  placeholders (in the auto-type item editing dialog)
+- The node mode of the configuration element
+  '/Configuration/Meta/PreferUserConfiguration' is now 'None'
+  by default
+- Improved INI loading performance
+- Improved data size formatting
+- Renamed value columns/commands in the history entry
+  comparison dialog from 'A'/'B' to '1'/'2'
+- Improved process memory protection of history entry
+  comparisons
+- Improved process memory protection of 'CryptoRandomStream'
+  objects
+- Improved thread safety of process memory protection on Unix-
+  like systems
+- The MSI file is now built using Visual Studio 2022
+- Various UI text improvements
+- Various code optimizations
+- Minor other improvements
+
+- Searches using an XPath expression involving history entries
+  now always regard all history entries
+- KeePass now does not crash anymore when a plugin tries to
+  upload a file to a server asynchronously
+
+2023-06-03: 2.54
+- Triggers, global URL overrides, password generator profiles
+  and a few more settings are now stored in the enforced
+  configuration file
+- Added dialog 'Enforce Options (All Users)' (menu 'Tools' ->
+  'Advanced Tools' -> 'Enforce Options'), which facilitates
+  storing certain options in the enforced configuration file
+- Export confirmation dialog banners now have a yellow-orange
+  background
+- In export confirmation dialogs, the text of the 'OK' button
+  is now changed to 'Confirm Export'
+- In report dialogs, passwords (and other sensitive data) are
+  now hidden using asterisks by default (if hiding is activated
+  in the main window); the hiding can be toggled using the new
+  '***' button in the toolbar
+- The 'Print' command in most report dialogs now requires the
+  'Print' application policy flag, and the master key must be
+  entered if the 'Print - No Key Repeat' application policy
+  flag is deactivated
+- The 'Export' command in most report dialogs now requires the
+  'Export' application policy flag, and the master key must be
+  entered
+- Single line edit dialogs now support hiding the value using
+  asterisks
+- On Unix-like systems, commands that require elevation now
+  have a shield icon (like on Windows)
+- TrlUtil: added 'Move Selected Unused Text to Dialog Control'
+  command
+
+- Improved process memory protection of secure edit controls
+- The content mode of the configuration elements
+  '/Configuration/Application/TriggerSystem',
+  '/Configuration/Integration/UrlSchemeOverrides' and
+  '/Configuration/PasswordGenerator/UserProfiles' is now
+  'Replace' by default
+- The built-in override for the 'ssh' URI scheme is now
+  deactivated by default (it can be activated in the 'URL
+  Overrides' dialog)
+- When opening the password generator dialog without a derived
+  profile, the '(Automatically generated passwords for new
+  entries)' profile is now selected by default, if profiles are
+  enabled (otherwise the default profile is used)
+- Improved UI update performance in the password generator
+  dialog
+- Improved and renamed dialog banner styles
+- The separator line of light dialog banners is gray now
+- Improved serialization/deserialization of custom
+  configuration settings (used by plugins)
+- Improved reporting of unknown database header fields
+- On Unix-like systems, the clipboard workarounds are now
+  disabled by default (they are not needed anymore on most
+  systems)
+- Improved clipboard clearing on Unix-like systems
+- Improved starting of an elevated process on Unix-like systems
+- TrlUtil: improved keyboard shortcut assignment and toolbar
+  construction
+- Installer: the desktop shortcut is now created for all users
+  (if the option 'Create a desktop shortcut' is activated)
+- Installer: removed the Quick Launch shortcut option
+- Upgraded installer
+- Various UI text improvements
+- Various code optimizations
+- Minor other improvements
+
+- In report dialogs, the 'Print' and 'Export' commands now
+  always use the actual data (in previous versions, asterisks
+  were printed/exported when the application policy flag
+  'Unhide Passwords' was turned off)
+- The icon of the custom algorithm options button in the
+  password generator dialog is not cut off anymore
+
+2023-02-08: 2.53.1
+- When testing a KDF ('Test' button in the database settings
+  dialog), KeePass now spawns a child process that performs the
+  KDF computation (which allows to cancel the test more cleanly
+  in the case of excessive parameters; security is unaffected,
+  because dummy data is used for the test)
+- Removed the 'Export - No Key Repeat' application policy flag;
+  KeePass now always asks for the current master key when
+  trying to export data
+- Minor other improvements
+
 2023-01-09: 2.53
 - For each entry listed on the 'History' tab page of the entry
   dialog, the fields modified with respect to the previous

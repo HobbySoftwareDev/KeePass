@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,12 +44,10 @@ namespace KeePass.DataExchange.Formats
 
 		public override bool ImportAppendsToRootGroupOnly { get { return true; } }
 
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
-			StreamReader sr = new StreamReader(sInput, StrUtil.Utf8, true);
-			string strData = sr.ReadToEnd();
-			sr.Close();
+			string strData = MemUtil.ReadString(sInput, StrUtil.Utf8);
 
 			CsvOptions opt = new CsvOptions();
 			opt.BackslashIsEscape = false;
@@ -70,7 +68,7 @@ namespace KeePass.DataExchange.Formats
 				if(v.Length == 0) continue;
 
 				PwEntry pe = new PwEntry(true, true);
-				pwStorage.RootGroup.AddEntry(pe, true);
+				pdStorage.RootGroup.AddEntry(pe, true);
 
 				Debug.Assert(v.Length == vNames.Length);
 				int m = Math.Min(v.Length, vNames.Length);
@@ -182,7 +180,7 @@ namespace KeePass.DataExchange.Formats
 							break;
 
 						case "favorite":
-							if(StrUtil.StringToBoolEx(strValue).GetValueOrDefault(false))
+							if(StrUtil.StringToBool(strValue))
 								pe.AddTag(PwDefs.FavoriteTag);
 							break;
 
@@ -226,7 +224,7 @@ namespace KeePass.DataExchange.Formats
 					}
 
 					if(!string.IsNullOrEmpty(strTo))
-						ImportUtil.AppendToField(pe, strTo, strValue, pwStorage);
+						ImportUtil.Add(pe, strTo, strValue, pdStorage);
 				}
 			}
 		}

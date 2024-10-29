@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ namespace KeePass.Forms
 		private bool m_bCanRememberCred = true;
 		private bool m_bTestConnection = false;
 
-		private List<KeyValuePair<IocPropertyInfo, Control>> m_lProps =
+		private readonly List<KeyValuePair<IocPropertyInfo, Control>> m_lProps =
 			new List<KeyValuePair<IocPropertyInfo, Control>>();
 
 		public IOConnectionInfo IOConnectionInfo
@@ -207,8 +207,8 @@ namespace KeePass.Forms
 				}
 				catch(Exception ex)
 				{
-					string strMsg = KPRes.Field + @" '" + pi.DisplayName +
-						@"':" + MessageService.NewLine + ex.Message;
+					string strMsg = KPRes.Field + " '" + pi.DisplayName + "':" +
+						MessageService.NewLine + StrUtil.FormatException(ex, null);
 					// if(!VistaTaskDialog.ShowMessageBox(strMsg, KPRes.ValidationFailed,
 					//	PwDefs.ShortProductName, VtdIcon.Warning, this))
 					MessageService.ShowWarning(strMsg);
@@ -242,21 +242,9 @@ namespace KeePass.Forms
 				if(!IOConnection.FileExists(m_ioc, true))
 					throw new FileNotFoundException();
 			}
-			catch(Exception exTest)
+			catch(Exception ex)
 			{
-				if(Program.CommandLineArgs[AppDefs.CommandLineOptions.Debug] != null)
-					MessageService.ShowWarningExcp(m_ioc.GetDisplayName(), exTest);
-				else
-				{
-					string strError = exTest.Message;
-					if((exTest.InnerException != null) &&
-						!string.IsNullOrEmpty(exTest.InnerException.Message))
-						strError += MessageService.NewParagraph +
-							exTest.InnerException.Message;
-
-					MessageService.ShowWarning(m_ioc.GetDisplayName(), strError);
-				}
-
+				MessageService.ShowWarning(m_ioc.GetDisplayName(), ex);
 				bResult = false;
 			}
 
@@ -303,12 +291,7 @@ namespace KeePass.Forms
 
 				List<IocPropertyInfo> l;
 				if(d.TryGetValue(strPrt, out l)) l.Add(pi);
-				else
-				{
-					l = new List<IocPropertyInfo>();
-					l.Add(pi);
-					d[strPrt] = l;
-				}
+				else d[strPrt] = new List<IocPropertyInfo> { pi };
 			}
 
 			return d;

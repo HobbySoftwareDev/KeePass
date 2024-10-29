@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ using System.Windows.Forms;
 
 using KeePass.App;
 using KeePass.App.Configuration;
-using KeePass.Plugins;
 using KeePass.Resources;
 using KeePass.UI;
 using KeePass.Util;
@@ -45,7 +44,7 @@ namespace KeePass.Plugins
 {
 	internal sealed class PluginManager : IEnumerable<PluginInfo>
 	{
-		private List<PluginInfo> m_vPlugins = new List<PluginInfo>();
+		private readonly List<PluginInfo> m_lPlugins = new List<PluginInfo>();
 		private IPluginHost m_host = null;
 
 		private static string g_strUserDir = string.Empty;
@@ -62,12 +61,12 @@ namespace KeePass.Plugins
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-			return m_vPlugins.GetEnumerator();
+			return m_lPlugins.GetEnumerator();
 		}
 		
 		public IEnumerator<PluginInfo> GetEnumerator()
 		{
-			return m_vPlugins.GetEnumerator();
+			return m_lPlugins.GetEnumerator();
 		}
 
 		internal void LoadAllPlugins()
@@ -166,10 +165,8 @@ namespace KeePass.Plugins
 		{
 			if(strFilePath == null) throw new ArgumentNullException("strFilePath");
 
-			List<string> l = new List<string>();
-			l.Add(strFilePath);
-
-			LoadPlugins(l, strTypeName, strDisplayFilePath, bSkipCacheFile);
+			LoadPlugins(new List<string> { strFilePath }, strTypeName,
+				strDisplayFilePath, bSkipCacheFile);
 		}
 
 		private void LoadPlugins(List<string> lFiles, string strTypeName,
@@ -184,7 +181,7 @@ namespace KeePass.Plugins
 					StrUtil.CaseIgnoreCmp))
 					continue;
 
-				FileVersionInfo fvi = null;
+				FileVersionInfo fvi;
 				try
 				{
 					fvi = FileVersionInfo.GetVersionInfo(strFile);
@@ -212,7 +209,7 @@ namespace KeePass.Plugins
 					if(!pi.Interface.Initialize(m_host))
 						continue; // Fail without error
 
-					m_vPlugins.Add(pi);
+					m_lPlugins.Add(pi);
 				}
 				catch(BadImageFormatException exBif)
 				{
@@ -224,8 +221,7 @@ namespace KeePass.Plugins
 				}
 				catch(Exception exLoad)
 				{
-					if(Program.CommandLineArgs[AppDefs.CommandLineOptions.Debug] != null)
-						MessageService.ShowWarningExcp(strFile, exLoad);
+					if(PwDefs.DebugMode) MessageService.ShowWarning(strFile, exLoad);
 					else exShowStd = exLoad;
 				}
 
@@ -247,9 +243,8 @@ namespace KeePass.Plugins
 			if(NativeLib.IsUnix())
 				strMsg += MessageService.NewParagraph + KPRes.PluginMonoComplete;
 
-			bool bShowExcp = (Program.CommandLineArgs[
-				AppDefs.CommandLineOptions.Debug] != null);
-			string strExcp = ((ex != null) ? StrUtil.FormatException(ex).Trim() : null);
+			bool bShowExcp = PwDefs.DebugMode;
+			string strExcp = ((ex != null) ? StrUtil.FormatException(ex) : null);
 
 			VistaTaskDialog vtd = new VistaTaskDialog();
 			vtd.Content = strMsg;
@@ -261,13 +256,13 @@ namespace KeePass.Plugins
 			if(!vtd.ShowDialog())
 			{
 				if(!bShowExcp) MessageService.ShowWarning(strMsg);
-				else MessageService.ShowWarningExcp(strPath, ex);
+				else MessageService.ShowWarning(strPath, ex);
 			}
 		}
 
 		public void UnloadAllPlugins()
 		{
-			foreach(PluginInfo plugin in m_vPlugins)
+			foreach(PluginInfo plugin in m_lPlugins)
 			{
 				Debug.Assert(plugin.Interface != null);
 				if(plugin.Interface != null)
@@ -277,7 +272,7 @@ namespace KeePass.Plugins
 				}
 			}
 
-			m_vPlugins.Clear();
+			m_lPlugins.Clear();
 		}
 
 		private static Plugin CreatePluginInstance(string strFilePath,
@@ -308,10 +303,7 @@ namespace KeePass.Plugins
 			{
 				byte[] pbFile = File.ReadAllBytes(strFile);
 				byte[] pbSig = StrUtil.Utf8.GetBytes("KpCreateInstance");
-				string strData = MemUtil.ByteArrayToHexString(pbFile);
-				string strSig = MemUtil.ByteArrayToHexString(pbSig);
-
-				return (strData.IndexOf(strSig) >= 0);
+				return (MemUtil.IndexOf(pbFile, pbSig) >= 0);
 			}
 			catch(Exception) { Debug.Assert(false); }
 
@@ -527,7 +519,7 @@ namespace KeePass.Plugins
 			if(c == null) { Debug.Assert(false); return; }
 
 			List<ToolStripItem> l = new List<ToolStripItem>();
-			foreach(PluginInfo pi in m_vPlugins)
+			foreach(PluginInfo pi in m_lPlugins)
 			{
 				if(pi == null) { Debug.Assert(false); continue; }
 

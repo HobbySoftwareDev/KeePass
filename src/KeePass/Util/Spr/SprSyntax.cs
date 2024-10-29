@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,12 +19,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Drawing;
-using System.Windows.Forms;
 using System.Diagnostics;
+using System.Drawing;
+using System.Text;
+using System.Windows.Forms;
 
-using KeePass.App;
+using KeePass.Native;
 
 using KeePassLib;
 using KeePassLib.Utility;
@@ -33,9 +33,9 @@ namespace KeePass.Util.Spr
 {
 	public static class SprSyntax
 	{
-		private static readonly string[] m_vDynSepPlh = new string[] {
-			@"{NEWPASSWORD:", @"{T-REPLACE-RX:", @"{T-CONV:",
-			@"{CMD:"
+		private static readonly string[] g_vDynSepPlh = new string[] {
+			"{CLIPBOARD-SET:", "{CMD:", "{NEWPASSWORD:",
+			"{T-CONV:", "{T-REPLACE-RX:"
 		};
 
 		private static readonly SprStyle SprStyleOK = new SprStyle(
@@ -51,7 +51,7 @@ namespace KeePass.Util.Spr
 			Color.FromArgb(224, 0, 0));
 			// AppDefs.ColorEditError);
 
-		private sealed class SprStyle : IEquatable<SprStyle> // Immutable
+		private sealed class SprStyle // : IEquatable<SprStyle> // Immutable
 		{
 			private readonly Color? m_clr;
 			public Color? Color { get { return m_clr; } }
@@ -118,10 +118,12 @@ namespace KeePass.Util.Spr
 		{
 			if(rtb == null) { Debug.Assert(false); return; }
 
+			string strText = rtb.Text;
 			int iSelStart = rtb.SelectionStart;
 			int iSelLen = rtb.SelectionLength;
+			NativeMethods.POINT ptScroll = NativeMethods.GetScrollPos(rtb);
 
-			string strText = rtb.Text;
+			NativeMethods.SetRedraw(rtb.Handle, false, false);
 
 			rtb.SelectAll();
 			// rtb.SelectionBackColor = SystemColors.Window;
@@ -158,7 +160,10 @@ namespace KeePass.Util.Spr
 				}
 			}
 
+			NativeMethods.SetScrollPos(rtb, ptScroll);
 			rtb.Select(iSelStart, iSelLen);
+
+			NativeMethods.SetRedraw(rtb.Handle, true, true);
 		}
 
 		private static List<SprStyle> GetHighlight(string str, SprContext ctx)
@@ -201,7 +206,7 @@ namespace KeePass.Util.Spr
 			string str = pPart.Text;
 
 			int iStart = -1, p = -1;
-			foreach(string strPlh in m_vDynSepPlh)
+			foreach(string strPlh in g_vDynSepPlh)
 			{
 				iStart = str.IndexOf(strPlh, StrUtil.CaseIgnoreCmp);
 				if(iStart >= 0)

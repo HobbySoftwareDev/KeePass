@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
-using KeePass.Ecas;
 using KeePass.Resources;
 using KeePass.UI;
 using KeePass.Util.Spr;
@@ -391,11 +390,11 @@ namespace KeePass.Ecas
 						{
 							int i = -1;
 							if(objType == EcasObjectType.Event)
-								i = cmbTypes.FindString(Program.EcasPool.FindEvent(o.Type).Name);
+								i = cmbTypes.FindStringExact(Program.EcasPool.FindEvent(o.Type).Name);
 							else if(objType == EcasObjectType.Condition)
-								i = cmbTypes.FindString(Program.EcasPool.FindCondition(o.Type).Name);
+								i = cmbTypes.FindStringExact(Program.EcasPool.FindCondition(o.Type).Name);
 							else if(objType == EcasObjectType.Action)
-								i = cmbTypes.FindString(Program.EcasPool.FindAction(o.Type).Name);
+								i = cmbTypes.FindStringExact(Program.EcasPool.FindAction(o.Type).Name);
 							else { Debug.Assert(false); }
 
 							if(i >= 0) cmbTypes.SelectedIndex = i;

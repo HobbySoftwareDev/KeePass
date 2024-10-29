@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Windows.Forms;
 
 using KeePass.Resources;
 using KeePass.UI;
@@ -115,6 +114,9 @@ namespace KeePass.App
 			public static readonly string CommandLine = "base/cmdline";
 			public static readonly string FieldRefs = "base/fieldrefs";
 
+			public static readonly string Configuration = "base/configuration";
+			internal const string ConfigurationEnableEnf = "enableenf";
+
 			internal const string Placeholders = "base/placeholders";
 			internal const string PlaceholdersOtp = "otp";
 
@@ -125,6 +127,7 @@ namespace KeePass.App
 			internal const string ImportExportParents = "exp_parents";
 
 			public static readonly string Security = "base/security";
+			internal const string SecurityDictProt = "secdictprotect";
 			internal const string SecurityOptEx = "secoptex";
 			internal const string SecurityOptAdm = "secoptadm";
 
@@ -148,6 +151,8 @@ namespace KeePass.App
 
 			public static readonly string KbFaq = "kb/faq";
 			public static readonly string KbFaqURtf = "urtf";
+
+			internal const string KbConfigEnf = "kb/config_enf";
 		}
 
 		public static class CommandLineOptions
@@ -206,6 +211,11 @@ namespace KeePass.App
 			public static readonly string ConfigRemoveUrlOverride = "remove-urloverride";
 
 			public static readonly string ConfigSetLanguageFile = "set-languagefile";
+
+			internal const string ConfigEnfSetupFile = "cfg-enf-setup-f";
+			internal const string ConfigEnfSetupHash = "cfg-enf-setup-h";
+
+			internal const string KdfTest = "kdf-test";
 
 			public static readonly string PlgxCreate = "plgx-create";
 			public static readonly string PlgxCreateInfo = "plgx-create-info";

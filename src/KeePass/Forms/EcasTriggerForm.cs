@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -131,13 +131,13 @@ namespace KeePass.Forms
 		private void OnBtnPrev(object sender, EventArgs e)
 		{
 			if(m_tabMain.SelectedIndex > 0)
-				m_tabMain.SelectedIndex = (m_tabMain.SelectedIndex - 1);
+				--m_tabMain.SelectedIndex;
 		}
 
 		private void OnBtnNext(object sender, EventArgs e)
 		{
 			if(m_tabMain.SelectedIndex < (m_tabMain.TabCount - 1))
-				m_tabMain.SelectedIndex = (m_tabMain.SelectedIndex + 1);
+				++m_tabMain.SelectedIndex;
 		}
 
 		private void EnableControlsEx()

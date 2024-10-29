@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ using KeePass.Resources;
 
 using KeePassLib;
 using KeePassLib.Interfaces;
-using KeePassLib.Security;
 using KeePassLib.Utility;
 
 namespace KeePass.DataExchange.Formats
@@ -46,14 +45,14 @@ namespace KeePass.DataExchange.Formats
 
 		private const string StrHeader = "SplashID Export File";
 
-		private static SplashIdMapping[] m_vMappings = null;
+		private static SplashIdMapping[] g_vMappings = null;
 		private static SplashIdMapping[] SplashIdMappings
 		{
 			get
 			{
-				if(m_vMappings != null) return m_vMappings;
+				if(g_vMappings != null) return g_vMappings;
 
-				m_vMappings = new SplashIdMapping[] {
+				g_vMappings = new SplashIdMapping[] {
 					new SplashIdMapping("Addresses", PwIcon.UserCommunication,
 						new string[] { PwDefs.TitleField, // Name
 							PwDefs.NotesField, // Address
@@ -130,16 +129,14 @@ namespace KeePass.DataExchange.Formats
 						new string[] { PwDefs.TitleField, PwDefs.UserNameField,
 							PwDefs.PasswordField, PwDefs.UrlField })
 				};
-				return m_vMappings;
+				return g_vMappings;
 			}
 		}
 
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
-			StreamReader sr = new StreamReader(sInput, Encoding.Default, true);
-			string strData = sr.ReadToEnd();
-			sr.Close();
+			string strData = MemUtil.ReadString(sInput, Encoding.Default);
 
 			CsvOptions o = new CsvOptions();
 			o.BackslashIsEscape = false;
@@ -173,12 +170,12 @@ namespace KeePass.DataExchange.Formats
 				}
 
 				if(vLine.Length == 13)
-					ProcessCsvLine(vLine, pwStorage, dictGroups);
+					ProcessCsvLine(vLine, pdStorage, dictGroups);
 				else { Debug.Assert(false); }
 			}
 		}
 
-		private static void ProcessCsvLine(string[] vLine, PwDatabase pwStorage,
+		private static void ProcessCsvLine(string[] vLine, PwDatabase pd,
 			SortedDictionary<string, PwGroup> dictGroups)
 		{
 			string strType = ParseCsvWord(vLine[0]);
@@ -198,7 +195,7 @@ namespace KeePass.DataExchange.Formats
 
 			PwIcon pwIcon = ((mp != null) ? mp.Icon : PwIcon.Key);
 
-			PwGroup pg = null;
+			PwGroup pg;
 			if(dictGroups.ContainsKey(strGroupName))
 				pg = dictGroups[strGroupName];
 			else
@@ -210,7 +207,7 @@ namespace KeePass.DataExchange.Formats
 				pg = new PwGroup(true, true);
 				pg.Name = strGroupName;
 
-				pwStorage.RootGroup.AddGroup(pg, true);
+				pd.RootGroup.AddGroup(pg, true);
 				dictGroups[strGroupName] = pg;
 			}
 
@@ -230,11 +227,10 @@ namespace KeePass.DataExchange.Formats
 					null);
 				string strField = (strLookup ?? ("Field " + (iField + 1).ToString()));
 
-				ImportUtil.AppendToField(pe, strField, strData, pwStorage);
+				ImportUtil.AppendToField(pe, strField, strData, pd);
 			}
 
-			ImportUtil.AppendToField(pe, PwDefs.NotesField, ParseCsvWord(vLine[11]),
-				pwStorage);
+			ImportUtil.Add(pe, PwDefs.NotesField, ParseCsvWord(vLine[11]), pd);
 
 			DateTime? odt = TimeUtil.ParseUSTextDate(ParseCsvWord(vLine[10]),
 				DateTimeKind.Local);
@@ -270,7 +266,7 @@ namespace KeePass.DataExchange.Formats
 				get { return m_pwIcon; }
 			}
 
-			private string[] m_vFieldNames = new string[9];
+			private readonly string[] m_vFieldNames = new string[9];
 			public string[] FieldNames
 			{
 				get { return m_vFieldNames; }

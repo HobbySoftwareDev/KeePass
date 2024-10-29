@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 
@@ -48,19 +49,16 @@ namespace KeePass.UI
 		public static DialogResult ShowFileSaveQuestion(string strFile,
 			FileSaveOrigin fsOrigin)
 		{
-			bool bFile = ((strFile != null) && (strFile.Length > 0));
+			bool bFile = !string.IsNullOrEmpty(strFile);
 
 			if(WinUtil.IsAtLeastWindowsVista)
 			{
 				VistaTaskDialog dlg = new VistaTaskDialog();
 
-				string strText = KPRes.DatabaseModifiedNoDot;
-				if(bFile) strText += ":\r\n" + strFile;
-				else strText += ".";
-
 				dlg.CommandLinks = true;
+				dlg.Content = (!bFile ? (KPRes.DatabaseModifiedNoDot + ".") :
+					(KPRes.DatabaseFile + ":" + MessageService.NewLine + strFile));
 				dlg.WindowTitle = PwDefs.ShortProductName;
-				dlg.Content = strText;
 				dlg.SetIcon(VtdCustomIcon.Question);
 
 				bool bShowCheckBox = true;
@@ -102,10 +100,12 @@ namespace KeePass.UI
 				}
 			}
 
-			string strMessage = (bFile ? (strFile + MessageService.NewParagraph) : string.Empty);
-			strMessage += KPRes.DatabaseModifiedNoDot + "." +
-				MessageService.NewParagraph + KPRes.SaveBeforeCloseQuestion;
-			return MessageService.Ask(strMessage, KPRes.SaveBeforeCloseTitle,
+			string strMsg = KPRes.DatabaseModifiedNoDot + "." + MessageService.NewParagraph;
+			if(bFile)
+				strMsg += KPRes.DatabaseFile + ":" + MessageService.NewLine +
+					strFile + MessageService.NewParagraph;
+			strMsg += KPRes.SaveBeforeCloseQuestion;
+			return MessageService.Ask(strMsg, KPRes.SaveBeforeCloseTitle,
 				MessageBoxButtons.YesNoCancel);
 		}
 
@@ -146,10 +146,10 @@ namespace KeePass.UI
 			return CheckAttachmentSize(fi.Length, strOp);
 		}
 
-		internal static void ShowConfigError(string strPath, string strError,
+		internal static void ShowConfigError(string strPath, Exception exError,
 			bool bSaving, bool bCreateBackup)
 		{
-			if(string.IsNullOrEmpty(strError)) { Debug.Assert(false); return; }
+			if(exError == null) { Debug.Assert(false); return; }
 
 			StringBuilder sb = new StringBuilder();
 
@@ -161,7 +161,7 @@ namespace KeePass.UI
 
 			sb.AppendLine(bSaving ? KLRes.FileSaveFailed : KLRes.FileLoadFailed);
 			sb.AppendLine();
-			sb.Append(strError);
+			sb.Append(StrUtil.FormatException(exError, null));
 
 			string strText = sb.ToString();
 
@@ -214,6 +214,7 @@ namespace KeePass.UI
 			{
 				FileBrowserForm fbf = new FileBrowserForm();
 				fbf.InitEx(bSaveMode, strTitle, KPRes.SecDeskFileDialogHint, strContext);
+				fbf.SuggestedFile = (strSuggestedFileName ?? string.Empty);
 
 				try
 				{
@@ -260,6 +261,77 @@ namespace KeePass.UI
 				strName, UIUtil.CreateFileTypeFilter(null, null, true), 1, null,
 				AppDefs.FileDialogContext.Attachments);
 			return ((sfd.ShowDialog() == DialogResult.OK) ? sfd.FileName : null);
+		}
+
+		internal static bool ConfirmRunFile(string strCmdLine, string strCmpFile,
+			string strCmpArgs, object oCfgContainer, string strCfgPropName)
+		{
+			PropertyInfo piForSet;
+			if(!AppConfigEx.GetPropertyValue<bool>(oCfgContainer, strCfgPropName,
+				true, out piForSet))
+				return true;
+
+			strCmdLine = (strCmdLine ?? string.Empty).Trim();
+
+			string strText = KPRes.RunOpenFileQ;
+			if(strCmdLine.Length != 0)
+				strText = strCmdLine + MessageService.NewParagraph + strText;
+
+			string strExpText = WinUtil.GetFileArgsText(strCmpFile, strCmpArgs);
+
+			VistaTaskDialog dlg = new VistaTaskDialog();
+			dlg.Content = strText;
+			if(!string.IsNullOrEmpty(strExpText))
+			{
+				dlg.ExpandedInformation = strExpText;
+				dlg.ExpandedControlText = KPRes.Details;
+				dlg.CollapsedControlText = KPRes.Details;
+				dlg.FooterText = KPRes.FileArgsDetailsHint;
+				dlg.SetFooterIcon(VtdIcon.Information);
+			}
+			if(piForSet != null)
+				dlg.VerificationText = UIUtil.GetDialogNoShowAgainText(null);
+			dlg.WindowTitle = PwDefs.ShortProductName;
+			dlg.SetIcon(VtdCustomIcon.Question);
+			dlg.AddButton((int)DialogResult.OK, KPRes.Yes, null);
+			dlg.AddButton((int)DialogResult.Cancel, KPRes.No, null);
+
+			if(dlg.ShowDialog())
+			{
+				bool b = (dlg.Result == (int)DialogResult.OK);
+				if(b && (piForSet != null) && dlg.ResultVerificationChecked)
+					piForSet.SetValue(oCfgContainer, false, null);
+				return b;
+			}
+			return MessageService.AskYesNo(strText);
+		}
+
+		internal static void ShowFileException(string strCmdLine, Exception ex,
+			string strCmpFile, string strCmpArgs)
+		{
+			StringBuilder sb = new StringBuilder();
+			StrUtil.AppendTrim(sb, null, strCmdLine);
+			StrUtil.AppendTrim(sb, MessageService.NewParagraph,
+				StrUtil.FormatException(ex, null));
+			string strText = sb.ToString();
+
+			string strExpText = WinUtil.GetFileArgsText(strCmpFile, strCmpArgs);
+
+			VistaTaskDialog dlg = new VistaTaskDialog();
+			dlg.Content = strText;
+			if(!string.IsNullOrEmpty(strExpText))
+			{
+				dlg.ExpandedInformation = strExpText;
+				dlg.ExpandedControlText = KPRes.Details;
+				dlg.CollapsedControlText = KPRes.Details;
+				dlg.FooterText = KPRes.FileArgsDetailsHint;
+				dlg.SetFooterIcon(VtdIcon.Information);
+			}
+			dlg.WindowTitle = PwDefs.ShortProductName;
+			dlg.SetIcon(VtdIcon.Warning);
+			dlg.AddButton((int)DialogResult.Cancel, KPRes.Ok, null);
+
+			if(!dlg.ShowDialog()) MessageService.ShowWarning(strText);
 		}
 	}
 
@@ -388,7 +460,7 @@ namespace KeePass.UI
 
 	public sealed class OpenFileDialogEx : FileDialogEx
 	{
-		private OpenFileDialog m_dlg = new OpenFileDialog();
+		private readonly OpenFileDialog m_dlg = new OpenFileDialog();
 
 		public override FileDialog FileDialog
 		{
@@ -418,7 +490,7 @@ namespace KeePass.UI
 
 	public sealed class SaveFileDialogEx : FileDialogEx
 	{
-		private SaveFileDialog m_dlg = new SaveFileDialog();
+		private readonly SaveFileDialog m_dlg = new SaveFileDialog();
 
 		public override FileDialog FileDialog
 		{

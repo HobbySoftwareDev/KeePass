@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@ using KeePass.App.Configuration;
 using KeePass.DataExchange;
 using KeePass.Ecas;
 using KeePass.Native;
-using KeePass.Plugins;
 using KeePass.Resources;
 using KeePass.UI;
 using KeePass.Util;
@@ -42,7 +41,6 @@ using KeePassLib;
 using KeePassLib.Collections;
 using KeePassLib.Cryptography.PasswordGenerator;
 using KeePassLib.Interfaces;
-using KeePassLib.Keys;
 using KeePassLib.Security;
 using KeePassLib.Serialization;
 using KeePassLib.Utility;
@@ -71,6 +69,7 @@ namespace KeePass.Forms
 		private bool m_bDraggingEntries = false;
 
 		private bool m_bBlockColumnUpdates = false;
+		private uint m_uBlockGroupSelectionEvent = 0;
 		private uint m_uBlockEntrySelectionEvent = 0;
 
 		private bool m_bForceExitOnce = false;
@@ -147,11 +146,15 @@ namespace KeePass.Forms
 			// get changed when the window's position/size is restored)
 			bool bMaximize = Program.Config.MainWindow.Maximized;
 
-			SuspendLayoutScope sls = new SuspendLayoutScope(true,
+			Control[] vSls = new Control[] {
 				this, m_menuMain, m_ctxGroupList, m_ctxPwList, m_ctxTray,
 				m_toolMain, m_statusMain,
 				m_splitHorizontal, m_splitHorizontal.Panel1, m_splitHorizontal.Panel2,
-				m_splitVertical, m_splitVertical.Panel1, m_splitVertical.Panel2);
+				m_splitVertical, m_splitVertical.Panel1, m_splitVertical.Panel2
+			};
+			if(MonoWorkarounds.IsRequired(2247))
+				vSls = MemUtil.Mid(vSls, 1, vSls.Length - 1);
+			SuspendLayoutScope sls = new SuspendLayoutScope(true, vSls);
 
 			GlobalWindowManager.CustomizeControl(this);
 			GlobalWindowManager.CustomizeFormHandleCreated(this, true, true);
@@ -387,6 +390,10 @@ namespace KeePass.Forms
 			imgC = UIUtil.CreateColorBitmap24(w, h, AppDefs.NamedEntryColor.LightYellow);
 			m_milMain.SetImage(m_menuEntryColorLightYellow, imgC);
 
+			Debug.Assert(m_menuToolsOptionsEnf.Image == null);
+			m_menuToolsOptionsEnf.Image = UIUtil.AddShieldOverlay(
+				Properties.Resources.B16x16_Misc);
+
 			Debug.Assert(!m_tvGroups.ShowRootLines); // See designer
 			// m_lvEntries.GridLines = mw.ShowGridLines;
 			if(UIUtil.VistaStyleListsSupported)
@@ -621,30 +628,21 @@ namespace KeePass.Forms
 			pd.RootGroup.AddGroup(pg, true);
 
 			PwEntry pe = new PwEntry(true, true);
-			pe.Strings.Set(PwDefs.TitleField, new ProtectedString(pd.MemoryProtection.ProtectTitle,
-				KPRes.SampleEntry));
-			pe.Strings.Set(PwDefs.UserNameField, new ProtectedString(pd.MemoryProtection.ProtectUserName,
-				KPRes.UserName));
-			pe.Strings.Set(PwDefs.UrlField, new ProtectedString(pd.MemoryProtection.ProtectUrl,
-				PwDefs.HomepageUrl));
-			pe.Strings.Set(PwDefs.PasswordField, new ProtectedString(pd.MemoryProtection.ProtectPassword,
-				KPRes.Password));
-			pe.Strings.Set(PwDefs.NotesField, new ProtectedString(pd.MemoryProtection.ProtectNotes,
-				KPRes.Notes));
+			ImportUtil.Add(pe, PwDefs.TitleField, KPRes.SampleEntry, pd);
+			ImportUtil.Add(pe, PwDefs.UserNameField, KPRes.UserName, pd);
+			ImportUtil.Add(pe, PwDefs.PasswordField, KPRes.Password, pd);
+			ImportUtil.Add(pe, PwDefs.UrlField, PwDefs.HomepageUrl, pd);
+			ImportUtil.Add(pe, PwDefs.NotesField, KPRes.Notes, pd);
 			pe.AutoType.Add(new AutoTypeAssociation(KPRes.TargetWindow,
 				@"{USERNAME}{TAB}{PASSWORD}{TAB}{ENTER}"));
 			// for(int i = 0; i < 30; ++i) pe.CustomData.Set("Test" + i.ToString("D2"), "12345");
 			pd.RootGroup.AddEntry(pe, true);
 
 			pe = new PwEntry(true, true);
-			pe.Strings.Set(PwDefs.TitleField, new ProtectedString(pd.MemoryProtection.ProtectTitle,
-				KPRes.SampleEntry + " #2"));
-			pe.Strings.Set(PwDefs.UserNameField, new ProtectedString(pd.MemoryProtection.ProtectUserName,
-				"Michael321"));
-			pe.Strings.Set(PwDefs.UrlField, new ProtectedString(pd.MemoryProtection.ProtectUrl,
-				PwDefs.HelpUrl + "kb/testform.html"));
-			pe.Strings.Set(PwDefs.PasswordField, new ProtectedString(pd.MemoryProtection.ProtectPassword,
-				"12345"));
+			ImportUtil.Add(pe, PwDefs.TitleField, KPRes.SampleEntry + " #2", pd);
+			ImportUtil.Add(pe, PwDefs.UserNameField, "Michael321", pd);
+			ImportUtil.Add(pe, PwDefs.PasswordField, "12345", pd);
+			ImportUtil.Add(pe, PwDefs.UrlField, PwDefs.HelpUrl + "kb/testform.html", pd);
 			pe.AutoType.Add(new AutoTypeAssociation("*Test Form - KeePass*", string.Empty));
 			pd.RootGroup.AddEntry(pe, true);
 
@@ -892,8 +890,7 @@ namespace KeePass.Forms
 
 		private void OnHelpAbout(object sender, EventArgs e)
 		{
-			AboutForm abf = new AboutForm();
-			UIUtil.ShowDialogAndDestroy(abf);
+			UIUtil.ShowDialogAndDestroy(new AboutForm());
 		}
 
 		private void OnEntryCopyUserName(object sender, EventArgs e)
@@ -1038,28 +1035,35 @@ namespace KeePass.Forms
 			if(m_bRestart) WinUtil.Restart();
 		}
 
-		private void OnGroupsNodeClick(object sender, TreeNodeMouseClickEventArgs e)
+		private void OnGroupsAfterSelect(object sender, TreeViewEventArgs e)
 		{
-			if(e.Button == MouseButtons.Right)
-			{
-				m_tvGroups.SelectedNode = e.Node;
+			if(e == null) { Debug.Assert(false); return; }
+			if(m_uBlockGroupSelectionEvent != 0) return;
+
+			// PwGroup pg = GetSelectedGroup();
+			// Trace.WriteLine("OnGroupsAfterSelect: " + ((pg != null) ? pg.Name : "?"));
+
+			Debug.Assert(e.Node == m_tvGroups.SelectedNode);
+			SelectGroup(e.Node, true);
+		}
+
+		private void OnGroupsNodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+		{
+			TreeNode tn = ((e != null) ? e.Node : null);
+			if(tn == null) { Debug.Assert(false); return; }
+
+			MouseButtons mb = e.Button;
+
+			TreeViewHitTestInfo hti = m_tvGroups.HitTest(e.Location);
+			if((hti != null) && (hti.Location == TreeViewHitTestLocations.PlusMinus) &&
+				(mb == MouseButtons.Left))
 				return;
-			}
 
-			if(e.Button != MouseButtons.Left) return;
-
-			TreeNode tn = e.Node;
-			if(tn != null)
-			{
-				PwGroup pg = (tn.Tag as PwGroup);
-				if(pg == null) { Debug.Assert(false); return; }
-				Debug.Assert((pg.ParentGroup != null) || (pg == m_docMgr.ActiveDatabase.RootGroup));
-
-				m_tvGroups.SelectedNode = tn; // KPB 1757850
-
-				pg.Touch(false);
-				UpdateUI(false, null, false, pg, true, pg, false);
-			}
+			// https://sourceforge.net/p/keepass/bugs/496/
+			// Furthermore, force updating the entry list (e.g. for the case when
+			// clicking on the selected group while displaying search results)
+			if((mb == MouseButtons.Left) || (mb == MouseButtons.Right))
+				SelectGroup(tn, true);
 		}
 
 		private void OnMenuChangeLanguage(object sender, EventArgs e)
@@ -1069,10 +1073,8 @@ namespace KeePass.Forms
 
 			if(UIUtil.ShowDialogAndDestroy(lf) == DialogResult.OK)
 			{
-				string str = KPRes.LanguageSelected + MessageService.NewParagraph +
-					KPRes.RestartKeePassQuestion;
-
-				if(MessageService.AskYesNo(str))
+				if(MessageService.AskYesNo(KPRes.LanguageSelected +
+					MessageService.NewParagraph + KPRes.RestartKeePassQuestion))
 				{
 					m_bRestart = true;
 					OnFileExit(sender, e);
@@ -1103,7 +1105,7 @@ namespace KeePass.Forms
 
 		private void OnPwListSelectedIndexChanged(object sender, EventArgs e)
 		{
-			if(m_uBlockEntrySelectionEvent > 0) return;
+			if(m_uBlockEntrySelectionEvent != 0) return;
 
 			// Always defer deselection updates (to ignore item deselect
 			// and reselect events when clicking on a selected item)
@@ -1260,7 +1262,7 @@ namespace KeePass.Forms
 
 				GlobalWindowManager.CustomizeFormHandleCreated(this, null, true);
 
-				AppConfigSerializer.Save(Program.Config);
+				AppConfigSerializer.Save();
 				UpdateTrayIcon(true);
 			}
 			UIUtil.DestroyForm(ofDlg);
@@ -1306,7 +1308,7 @@ namespace KeePass.Forms
 			m_pgActiveAtDragStart = GetSelectedGroup();
 
 			m_bDraggingEntries = true;
-			this.DoDragDrop(strToTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+			DoDragDrop(strToTransfer, DragDropEffects.Copy | DragDropEffects.Move);
 			m_bDraggingEntries = false;
 
 			pe.Touch(false);
@@ -1315,7 +1317,7 @@ namespace KeePass.Forms
 
 		private void OnGroupsItemDrag(object sender, ItemDragEventArgs e)
 		{
-			TreeNode tn = (e.Item as TreeNode);
+			TreeNode tn = ((e != null) ? (e.Item as TreeNode) : null);
 			if(tn == null) { Debug.Assert(false); return; }
 
 			PwGroup pg = (tn.Tag as PwGroup);
@@ -1324,10 +1326,13 @@ namespace KeePass.Forms
 			if(pg == m_docMgr.ActiveDatabase.RootGroup) return;
 			if(pg.ParentGroup == null) return;
 
-			m_pgActiveAtDragStart = pg;
+			TreeNode tnPrev = m_tvGroups.SelectedNode; // May differ from tn
+			PwGroup pgPrev = ((tnPrev != null) ? (tnPrev.Tag as PwGroup) : null);
+			Debug.Assert(pgPrev != null);
+			m_pgActiveAtDragStart = (pgPrev ?? pg);
 
 			m_bDraggingGroup = true;
-			this.DoDragDrop(pg, DragDropEffects.Copy | DragDropEffects.Move);
+			DoDragDrop(pg, DragDropEffects.Copy | DragDropEffects.Move);
 			m_bDraggingGroup = false;
 
 			pg.Touch(false);
@@ -1335,11 +1340,11 @@ namespace KeePass.Forms
 
 		private void OnGroupsDragDrop(object sender, DragEventArgs e)
 		{
-			TreeViewHitTestInfo tvhi = m_tvGroups.HitTest(m_tvGroups.PointToClient(
+			TreeViewHitTestInfo hti = m_tvGroups.HitTest(m_tvGroups.PointToClient(
 				new Point(e.X, e.Y)));
-			if(tvhi.Node == null) return;
+			if((hti == null) || (hti.Node == null)) return;
 
-			PwGroup pgSelected = (tvhi.Node.Tag as PwGroup);
+			PwGroup pgSelected = (hti.Node.Tag as PwGroup);
 			if(pgSelected == null) { Debug.Assert(false); return; }
 
 			if(m_bDraggingEntries)
@@ -1398,7 +1403,7 @@ namespace KeePass.Forms
 					if((e.KeyState & 8) != 0) e.Effect = DragDropEffects.Copy;
 					else e.Effect = DragDropEffects.Move;
 
-					m_tvGroups.SelectedNode = tn;
+					SelectGroup(tn, false);
 				}
 			}
 			else // No known format
@@ -1407,16 +1412,15 @@ namespace KeePass.Forms
 
 		private void OnGroupsDragLeave(object sender, EventArgs e)
 		{
-			SetSelectedGroup(m_pgActiveAtDragStart, true);
+			SelectGroup(m_pgActiveAtDragStart, false);
 		}
 
 		private void OnGroupAdd(object sender, EventArgs e)
 		{
-			TreeNode tn = m_tvGroups.SelectedNode;
 			PwDatabase pd = m_docMgr.ActiveDatabase;
-			PwGroup pgParent;
-			if(tn != null) pgParent = (tn.Tag as PwGroup);
-			else pgParent = pd.RootGroup;
+			if((pd == null) || !pd.IsOpen) { Debug.Assert(false); return; }
+
+			PwGroup pgParent = (GetSelectedGroup() ?? pd.RootGroup);
 			if(pgParent == null) { Debug.Assert(false); return; }
 
 			PwGroup pgNew = new PwGroup(true, true, KPRes.NewGroup, PwIcon.Folder);
@@ -1747,74 +1751,12 @@ namespace KeePass.Forms
 
 		private void OnPwListKeyDown(object sender, KeyEventArgs e)
 		{
-			if(HandleMoveKeyMessage(e, true, true)) return;
-
-			bool bHandled = true;
-
-			if(e.Control)
-			{
-				switch(e.KeyCode)
-				{
-					case Keys.A: OnEntrySelectAll(sender, e); break;
-					case Keys.C:
-					case Keys.Insert:
-						if(e.Shift) OnEntryClipCopy(sender, e);
-						else OnEntryCopyPassword(sender, e);
-						break;
-					case Keys.T:
-						OnEntryStringClick(sender, new DynamicMenuEventArgs(
-							string.Empty, (e.Shift ? m_edcShowTotp : m_edcCopyTotp)));
-						break;
-					case Keys.V:
-						if(e.Shift) OnEntryClipPaste(sender, e);
-						else OnEntryPerformAutoType(sender, e);
-						break;
-					default: bHandled = false; break;
-				}
-			}
-			else if(e.Alt) bHandled = false;
-			else if(e.KeyCode == Keys.Delete)
-				OnEntryDelete(sender, e);
-			else if(e.KeyCode == Keys.Return) // Return == Enter
-				OnEntryEdit(sender, e);
-			else if(e.KeyCode == Keys.Insert)
-			{
-				if(e.Shift) OnEntryClipPaste(sender, e);
-				else OnEntryAdd(sender, e);
-			}
-			else if(e.KeyCode == Keys.F2)
-				OnEntryEdit(sender, e);
-			else bHandled = false;
-
-			if(bHandled) UIUtil.SetHandled(e, true);
+			HandleEntryKeyEvent(e, true);
 		}
 
 		private void OnPwListKeyUp(object sender, KeyEventArgs e)
 		{
-			if(HandleMoveKeyMessage(e, false, true)) return;
-
-			bool bHandled = true;
-
-			if(e.Control)
-			{
-				switch(e.KeyCode)
-				{
-					case Keys.A: break;
-					case Keys.C: break;
-					case Keys.Insert: break;
-					case Keys.T: break;
-					case Keys.V: break;
-					default: bHandled = false; break;
-				}
-			}
-			else if(e.Alt) bHandled = false;
-			else if(e.KeyCode == Keys.Delete) { }
-			else if(e.KeyCode == Keys.Return) { } // Return == Enter
-			else if(e.KeyCode == Keys.Insert) { }
-			else if(e.KeyCode == Keys.F2) { }
-			else bHandled = false;
-
-			if(bHandled) UIUtil.SetHandled(e, true);
+			HandleEntryKeyEvent(e, false);
 		}
 
 		private void OnFindInGroup(object sender, EventArgs e)
@@ -2161,52 +2103,12 @@ namespace KeePass.Forms
 
 		private void OnGroupsKeyDown(object sender, KeyEventArgs e)
 		{
-			if(HandleMoveKeyMessage(e, true, false)) return;
-
-			bool bHandled = true;
-
-			if(e.Alt) bHandled = false;
-			else if(e.KeyCode == Keys.Delete)
-				OnGroupDelete(sender, e);
-			else if(e.KeyCode == Keys.F2)
-				OnGroupEdit(sender, e);
-			else bHandled = false;
-
-			if(bHandled) UIUtil.SetHandled(e, true);
-			else m_kLastUnhandledGroupsKey = e.KeyCode;
+			HandleGroupKeyEvent(e, true);
 		}
 
 		private void OnGroupsKeyUp(object sender, KeyEventArgs e)
 		{
-			OnGroupsKeyUpPriv(sender, e);
-			m_kLastUnhandledGroupsKey = Keys.None; // Always reset
-		}
-
-		private void OnGroupsKeyUpPriv(object sender, KeyEventArgs e)
-		{
-			if(HandleMoveKeyMessage(e, false, false)) return;
-
-			bool bHandled = true;
-
-			if(e.Alt) bHandled = false;
-			else if(e.KeyCode == Keys.Delete) { }
-			else if(e.KeyCode == Keys.F2) { }
-			else if((e.KeyCode == Keys.Up) || (e.KeyCode == Keys.Down) ||
-				(e.KeyCode == Keys.Left) || (e.KeyCode == Keys.Right) ||
-				(e.KeyCode == Keys.Home) || (e.KeyCode == Keys.End) ||
-				((e.KeyCode >= Keys.A) && (e.KeyCode <= Keys.Z)) ||
-				((e.KeyCode >= Keys.D0) && (e.KeyCode <= Keys.D9)) ||
-				((e.KeyCode >= Keys.NumPad0) && (e.KeyCode <= Keys.NumPad9)))
-			{
-				// It is possible to receive a key up event even though the
-				// key down event went to a different control (e.g. a menu
-				// item); do not do anything in this case
-				if(e.KeyCode == m_kLastUnhandledGroupsKey)
-					UpdateUI(false, null, false, null, true, null, false);
-			}
-			else bHandled = false;
-
-			if(bHandled) UIUtil.SetHandled(e, true);
+			HandleGroupKeyEvent(e, false);
 		}
 
 		private void OnTabMainSelectedIndexChanged(object sender, EventArgs e)
@@ -2276,12 +2178,12 @@ namespace KeePass.Forms
 
 		private void OnEntryViewKeyDown(object sender, KeyEventArgs e)
 		{
-			HandleMainWindowKeyMessage(e, true);
+			HandleMainWindowKeyEvent(e, true);
 		}
 
 		private void OnEntryViewKeyUp(object sender, KeyEventArgs e)
 		{
-			HandleMainWindowKeyMessage(e, false);
+			HandleMainWindowKeyEvent(e, false);
 		}
 
 		private void OnSystemTrayMouseDown(object sender, MouseEventArgs e)
@@ -2719,35 +2621,21 @@ namespace KeePass.Forms
 		{
 			Debug.Assert(sender == m_menuGroupDX);
 
-			bool bPaste = m_docMgr.ActiveDatabase.IsOpen;
-			try // Might fail/throw due to clipboard access timeout
-			{
-				bPaste &= ClipboardUtil.ContainsData(EntryUtil.ClipFormatGroup);
-			}
-			catch(Exception) { bPaste = false; }
-			UIUtil.SetEnabledFast(bPaste, m_menuGroupClipPaste);
+			UIUtil.SetEnabledFast(EntryUtil.CanPasteGroup(GetSelectedGroup()),
+				m_menuGroupClipPaste);
 		}
 
 		private void OnEntryDXOpening(object sender, EventArgs e)
 		{
 			Debug.Assert(sender == m_menuEntryDX);
 
-			bool bPaste = m_docMgr.ActiveDatabase.IsOpen;
-			bool bMulti = (m_lvEntries.SelectedIndices.Count >= 2); // Text consistency
+			bool b1;
+			bool b = EntryUtil.CanPasteEntries(GetSelectedGroup(), out b1);
 
-			try // Might fail/throw due to clipboard access timeout
-			{
-				bool b1 = ClipboardUtil.ContainsData(EntryUtil.ClipFormatEntry);
-				bool bM = ClipboardUtil.ContainsData(EntryUtil.ClipFormatEntries);
-				bool bAny = (b1 || bM);
+			UIUtil.SetEnabledFast(b, m_menuEntryClipPaste);
 
-				bPaste &= bAny;
-				if(bAny) bMulti = bM;
-			}
-			catch(Exception) { bPaste = false; }
-
-			UIUtil.SetEnabledFast(bPaste, m_menuEntryClipPaste);
-
+			// Text consistency
+			bool bMulti = (b ? !b1 : (m_lvEntries.SelectedIndices.Count >= 2));
 			m_menuEntryClipPaste.Text = (bMulti ? KPRes.PasteEntriesCmd :
 				KPRes.PasteEntryCmd);
 		}
@@ -2873,6 +2761,71 @@ namespace KeePass.Forms
 				RefreshEntriesList();
 				UpdateUIState(true);
 			}
+		}
+
+		private void OnToolsOptionsEnf(object sender, EventArgs e)
+		{
+			UIUtil.ShowDialogAndDestroy(new OptionsEnfForm());
+		}
+
+		private void OnEntryCompare2(object sender, EventArgs e)
+		{
+			PwDatabase pd = m_docMgr.ActiveDatabase;
+			if((pd == null) || !pd.IsOpen) return;
+
+			PwEntry[] v = GetSelectedEntries();
+			if((v == null) || (v.Length != 2)) return;
+
+			DiffUtil.ShowDiff(v[0], v[0].ParentGroup, pd, v[1], v[1].ParentGroup, pd);
+		}
+
+		private void OnEntryCompareMark(object sender, EventArgs e)
+		{
+			if(GetSelectedEntriesCount() != 1) return;
+
+			m_peMarkedForComparison = GetSelectedEntry(false);
+		}
+
+		private void OnEntryCompare1(object sender, EventArgs e)
+		{
+			if(GetSelectedEntriesCount() != 1) return;
+
+			PwGroup pgA;
+			PwDatabase pdA;
+			PwEntry peA = GetEntryMarkedForComparison(out pgA, out pdA);
+			PwEntry peB = GetSelectedEntry(false);
+			if((peA == null) || (peB == null)) return;
+
+			DiffUtil.ShowDiff(peA, pgA, pdA, peB, peB.ParentGroup, m_docMgr.ActiveDatabase);
+		}
+
+		private void OnEntryCompareOpening(object sender, EventArgs e)
+		{
+			uint c = GetSelectedEntriesCount();
+
+			PwGroup pgM;
+			PwDatabase pdM;
+			PwEntry peM = GetEntryMarkedForComparison(out pgM, out pdM);
+
+			m_menuEntryCompare2.Enabled = (c == 2);
+			m_menuEntryCompareMark.Enabled = (c == 1);
+			m_menuEntryCompare1.Enabled = ((c == 1) && (peM != null));
+
+			string strNL = MessageService.NewLine;
+			string strSep = strNL + "\u2192 ";
+
+			m_menuEntryCompare2.ToolTipText =
+				KPRes.Entry + " 1: " + KPRes.SelectedLower + "." + strNL +
+				KPRes.Entry + " 2: " + KPRes.SelectedLower + ".";
+
+			string str = string.Empty;
+			if(peM != null)
+				str = KPRes.Entry + " 1:" + strNL +
+					pdM.IOConnectionInfo.GetDisplayName() + strSep +
+					pgM.GetFullPath(strSep, true) + strSep +
+					peM.Strings.ReadSafe(PwDefs.TitleField) + "." + strNL + strNL +
+					KPRes.Entry + " 2:" + strNL + KPRes.SelectedLower + ".";
+			m_menuEntryCompare1.ToolTipText = str;
 		}
 	}
 }

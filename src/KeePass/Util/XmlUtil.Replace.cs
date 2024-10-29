@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,10 +29,8 @@ using System.Xml.XPath;
 
 using KeePass.Forms;
 using KeePass.Resources;
-using KeePass.UI;
 
 using KeePassLib;
-using KeePassLib.Collections;
 using KeePassLib.Delegates;
 using KeePassLib.Interfaces;
 using KeePassLib.Security;
@@ -193,28 +191,29 @@ namespace KeePass.Util
 				else { Debug.Assert(false); } // Unknown action
 			}
 
-			MemoryStream msMod = new MemoryStream();
-			using(XmlWriter xw = XmlUtilEx.CreateXmlWriter(msMod))
-			{
-				xd.Save(xw);
-			}
-			byte[] pbMod = msMod.ToArray();
-			msMod.Close();
-
 			PwDatabase pdMod = new PwDatabase();
-			msMod = new MemoryStream(pbMod, false);
 			try
 			{
-				KdbxFile kdbxMod = new KdbxFile(pdMod);
-				kdbxMod.Load(msMod, KdbxFormat.PlainXml, sl);
+				using(MemoryStream msW = new MemoryStream())
+				{
+					using(XmlWriter xw = XmlUtilEx.CreateXmlWriter(msW))
+					{
+						xd.Save(xw);
+					}
+
+					using(MemoryStream msR = new MemoryStream(msW.ToArray(), false))
+					{
+						KdbxFile kdbx = new KdbxFile(pdMod);
+						kdbx.Load(msR, KdbxFormat.PlainXml, sl);
+					}
+				}
 			}
-			catch(Exception)
+			catch(Exception ex)
 			{
-				throw new Exception(KPRes.XmlModInvalid + MessageService.NewParagraph +
-					KPRes.OpAborted + MessageService.NewParagraph +
-					KPRes.DbNoModBy.Replace(@"{PARAM}", @"'" + KPRes.XmlReplace + @"'"));
+				throw new ExtendedException(KPRes.XmlModInvalid, ex,
+					KPRes.OpAborted + " " + KPRes.DbNoModBy.Replace("{PARAM}",
+					"'" + KPRes.XmlReplace + "'"));
 			}
-			finally { msMod.Close(); }
 
 			PrepareModDbForMerge(pdMod, pd);
 
@@ -233,7 +232,7 @@ namespace KeePass.Util
 			else return;
 			if(strData == null) { Debug.Assert(false); strData = string.Empty; }
 
-			string str = null;
+			string str;
 			if(rxFind != null) str = rxFind.Replace(strData, opt.ReplaceText);
 			else
 			{

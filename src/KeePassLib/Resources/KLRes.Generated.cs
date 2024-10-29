@@ -51,6 +51,7 @@ namespace KeePassLib.Resources
 			m_strFileUnknownCompression = TryGetEx(dictNew, "FileUnknownCompression", m_strFileUnknownCompression);
 			m_strFileVersionUnsupported = TryGetEx(dictNew, "FileVersionUnsupported", m_strFileVersionUnsupported);
 			m_strFinalKeyCreationFailed = TryGetEx(dictNew, "FinalKeyCreationFailed", m_strFinalKeyCreationFailed);
+			m_strFollowRedirects = TryGetEx(dictNew, "FollowRedirects", m_strFollowRedirects);
 			m_strFrameworkNotImplExcp = TryGetEx(dictNew, "FrameworkNotImplExcp", m_strFrameworkNotImplExcp);
 			m_strGeneral = TryGetEx(dictNew, "General", m_strGeneral);
 			m_strGroupLower = TryGetEx(dictNew, "GroupLower", m_strGroupLower);
@@ -104,6 +105,7 @@ namespace KeePassLib.Resources
 			"FileUnknownCompression",
 			"FileVersionUnsupported",
 			"FinalKeyCreationFailed",
+			"FollowRedirects",
 			"FrameworkNotImplExcp",
 			"General",
 			"GroupLower",
@@ -411,6 +413,17 @@ namespace KeePassLib.Resources
 			get { return m_strFinalKeyCreationFailed; }
 		}
 
+		private static string m_strFollowRedirects =
+			@"Follow redirects";
+		/// <summary>
+		/// Look up a localized string similar to
+		/// 'Follow redirects'.
+		/// </summary>
+		public static string FollowRedirects
+		{
+			get { return m_strFollowRedirects; }
+		}
+
 		private static string m_strFrameworkNotImplExcp =
 			@"The .NET Framework/runtime under which KeePass is currently running does not support this operation.";
 		/// <summary>
@@ -643,10 +656,10 @@ namespace KeePassLib.Resources
 		}
 
 		private static string m_strUnknownHeaderId =
-			@"Unknown header ID!";
+			@"Unknown header ID";
 		/// <summary>
 		/// Look up a localized string similar to
-		/// 'Unknown header ID!'.
+		/// 'Unknown header ID'.
 		/// </summary>
 		public static string UnknownHeaderId
 		{

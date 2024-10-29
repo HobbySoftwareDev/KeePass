@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -106,10 +106,8 @@ namespace KeePass.UI
 		[MarshalAs(UnmanagedType.LPWStr)]
 		public string Text;
 
-		public VtdButton(bool bConstruct)
+		public VtdButton(bool _)
 		{
-			Debug.Assert(bConstruct);
-
 			this.ID = (int)DialogResult.Cancel;
 			this.Text = string.Empty;
 		}
@@ -168,10 +166,8 @@ namespace KeePass.UI
 		public IntPtr lpCallbackData;
 		public uint cxWidth;
 
-		public VtdConfig(bool bConstruct)
+		public VtdConfig(bool _)
 		{
-			Debug.Assert(bConstruct);
-
 			cbSize = (uint)Marshal.SizeOf(typeof(VtdConfig));
 			hwndParent = IntPtr.Zero;
 			hInstance = IntPtr.Zero;
@@ -214,7 +210,7 @@ namespace KeePass.UI
 		private int m_iResult = (int)DialogResult.Cancel;
 		private bool m_bVerification = false;
 
-		private List<VtdButton> m_vButtons = new List<VtdButton>();
+		private readonly List<VtdButton> m_lButtons = new List<VtdButton>();
 
 		// private IntPtr m_hWnd = IntPtr.Zero;
 
@@ -232,7 +228,7 @@ namespace KeePass.UI
 
 		internal ReadOnlyCollection<VtdButton> Buttons
 		{
-			get { return m_vButtons.AsReadOnly(); }
+			get { return m_lButtons.AsReadOnly(); }
 		}
 
 		public string Content
@@ -271,6 +267,18 @@ namespace KeePass.UI
 		{
 			get { return m_cfg.pszExpandedInformation; }
 			set { m_cfg.pszExpandedInformation = value; }
+		}
+
+		public string ExpandedControlText
+		{
+			get { return m_cfg.pszExpandedControlText; }
+			set { m_cfg.pszExpandedControlText = value; }
+		}
+
+		public string CollapsedControlText
+		{
+			get { return m_cfg.pszCollapsedControlText; }
+			set { m_cfg.pszCollapsedControlText = value; }
 		}
 
 		public bool ExpandedByDefault
@@ -322,7 +330,7 @@ namespace KeePass.UI
 
 			btn.ID = iResult;
 
-			m_vButtons.Add(btn);
+			m_lButtons.Add(btn);
 		}
 
 		public void SetIcon(VtdIcon vtdIcon)
@@ -351,16 +359,16 @@ namespace KeePass.UI
 
 		private void ButtonsToPtr()
 		{
-			if(m_vButtons.Count == 0) { m_cfg.pButtons = IntPtr.Zero; return; }
+			if(m_lButtons.Count == 0) { m_cfg.pButtons = IntPtr.Zero; return; }
 
 			int nConfigSize = Marshal.SizeOf(typeof(VtdButton));
-			m_cfg.pButtons = Marshal.AllocHGlobal(m_vButtons.Count * nConfigSize);
-			m_cfg.cButtons = (uint)m_vButtons.Count;
+			m_cfg.pButtons = Marshal.AllocHGlobal(m_lButtons.Count * nConfigSize);
+			m_cfg.cButtons = (uint)m_lButtons.Count;
 
-			for(int i = 0; i < m_vButtons.Count; ++i)
+			for(int i = 0; i < m_lButtons.Count; ++i)
 			{
 				long l = m_cfg.pButtons.ToInt64() + (i * nConfigSize);
-				Marshal.StructureToPtr(m_vButtons[i], new IntPtr(l), false);
+				Marshal.StructureToPtr(m_lButtons[i], new IntPtr(l), false);
 			}
 		}
 
@@ -369,7 +377,7 @@ namespace KeePass.UI
 			if(m_cfg.pButtons == IntPtr.Zero) return;
 
 			int nConfigSize = Marshal.SizeOf(typeof(VtdButton));
-			for(int i = 0; i < m_vButtons.Count; ++i)
+			for(int i = 0; i < m_lButtons.Count; ++i)
 			{
 				long l = m_cfg.pButtons.ToInt64() + (i * nConfigSize);
 				Marshal.DestroyStructure(new IntPtr(l), typeof(VtdButton));
@@ -438,10 +446,6 @@ namespace KeePass.UI
 					m_cfg.hwndParent = IntPtr.Zero;
 				}
 			}
-
-			bool bExp = (m_cfg.pszExpandedInformation != null);
-			m_cfg.pszExpandedControlText = (bExp ? KPRes.Details : null);
-			m_cfg.pszCollapsedControlText = (bExp ? KPRes.Details : null);
 
 			int pnButton = 0, pnRadioButton = 0;
 			bool bVerification = false;

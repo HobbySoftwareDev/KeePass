@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -76,9 +76,10 @@ namespace KeePassLib.Utility
 		{
 			if(pb == null) throw new ArgumentNullException("pb");
 
-			MemoryStream ms = new MemoryStream(pb, false);
-			try { return Image.FromStream(ms); }
-			finally { ms.Close(); }
+			using(MemoryStream ms = new MemoryStream(pb, false))
+			{
+				return Image.FromStream(ms);
+			}
 		}
 #else
 		public static Image LoadImage(byte[] pb)
@@ -98,9 +99,10 @@ namespace KeePassLib.Utility
 			catch(Exception) { Debug.Assert(false); }
 #endif
 
-			MemoryStream ms = new MemoryStream(pb, false);
-			try { return LoadImagePriv(ms); }
-			finally { ms.Close(); }
+			using(MemoryStream ms = new MemoryStream(pb, false))
+			{
+				return LoadImagePriv(ms);
+			}
 		}
 
 		private static Image LoadImagePriv(Stream s)
@@ -233,7 +235,6 @@ namespace KeePassLib.Utility
 			if(MemUtil.BytesToUInt16(pb, 2) != 1) return null; // ICO type, 1
 
 			int n = MemUtil.BytesToUInt16(pb, 4);
-			if(n < 0) { Debug.Assert(false); return null; }
 
 			int cbDir = SizeICONDIR + (n * SizeICONDIRENTRY);
 			if(pb.Length < cbDir) return null;
@@ -244,7 +245,6 @@ namespace KeePassLib.Utility
 			{
 				int w = pb[iOffset];
 				int h = pb[iOffset + 1];
-				if((w < 0) || (h < 0)) { Debug.Assert(false); return null; }
 
 				int cb = MemUtil.BytesToInt32(pb, iOffset + 8);
 				if(cb <= 0) return null; // Data must have header (even BMP)
@@ -384,17 +384,13 @@ namespace KeePassLib.Utility
 			// when shrinking images, do not apply a -0.5 offset,
 			// otherwise the image is cropped on the bottom/right
 			// side; this applies to all interpolation modes
-			if(rDest.Width > rSource.Width)
-				rSource.X = rSource.X - 0.5f;
-			if(rDest.Height > rSource.Height)
-				rSource.Y = rSource.Y - 0.5f;
+			if(rDest.Width > rSource.Width) rSource.X -= 0.5f;
+			if(rDest.Height > rSource.Height) rSource.Y -= 0.5f;
 
 			// When shrinking, apply a +0.5 offset, such that the
 			// scaled image is less cropped on the bottom/right side
-			if(rDest.Width < rSource.Width)
-				rSource.X = rSource.X + 0.5f;
-			if(rDest.Height < rSource.Height)
-				rSource.Y = rSource.Y + 0.5f;
+			if(rDest.Width < rSource.Width) rSource.X += 0.5f;
+			if(rDest.Height < rSource.Height) rSource.Y += 0.5f;
 		}
 
 #if DEBUG

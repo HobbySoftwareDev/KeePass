@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,14 +24,10 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Media;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
-
-using Microsoft.Win32;
 
 using KeePass.App;
 using KeePass.App.Configuration;
@@ -75,6 +71,16 @@ namespace KeePass.UI
 	{
 		private const int FwsNormal = 0;
 		private const int FwsMaximized = 2; // Compatible with FormWindowState
+
+		// The number of characters that Windows draws in the window title bar
+		// and in the tooltip of the task bar item is limited:
+		// Windows XP Classic: 254 /  79,
+		// Windows XP Theme:   259 /  79,
+		// Windows 7 Classic:  254 / 259,
+		// Windows 7 Theme:    259 / 259,
+		// Windows 8.1:        255 / 259,
+		// Windows 11:         255 / 259.
+		internal const int MaxWindowTitleLength = 254;
 
 		private static bool g_bVistaStyleLists = false;
 		public static bool VistaStyleListsSupported
@@ -852,10 +858,12 @@ namespace KeePass.UI
 				if((f & AceAutoTypeCtxFlags.ColNotes) != AceAutoTypeCtxFlags.None)
 					lvi.SubItems.Add(StrUtil.MultiToSingleLine(SprEngine.Compile(
 						pe.Strings.ReadSafe(PwDefs.NotesField), sprCtx)));
+
+				string strSeqFlt = null;
 				if((f & AceAutoTypeCtxFlags.ColSequenceComments) != AceAutoTypeCtxFlags.None)
 				{
 					List<string> lCmt = new List<string>();
-					SprEngine.RemoveComments(ctx.Sequence, lCmt, sprCtx);
+					strSeqFlt = SprEngine.RemoveComments(ctx.Sequence, lCmt, sprCtx);
 
 					string str = string.Empty;
 					if(lCmt.Count != 0)
@@ -872,7 +880,8 @@ namespace KeePass.UI
 					lvi.SubItems.Add(str);
 				}
 				if((f & AceAutoTypeCtxFlags.ColSequence) != AceAutoTypeCtxFlags.None)
-					lvi.SubItems.Add(ctx.Sequence);
+					lvi.SubItems.Add(strSeqFlt ?? ctx.Sequence);
+
 				Debug.Assert(lvi.SubItems.Count == lv.Columns.Count);
 
 				if(!UIUtil.ColorsEqual(pe.ForegroundColor, Color.Empty))
@@ -1047,12 +1056,9 @@ namespace KeePass.UI
 			if(!string.IsNullOrEmpty(strTitle))
 				sfd.Title = strTitle;
 
-			if(strContext != null)
-			{
-				if((strContext == AppDefs.FileDialogContext.Database) &&
-					(Program.Config.Defaults.FileSaveAsDirectory.Length > 0))
-					sfd.InitialDirectory = Program.Config.Defaults.FileSaveAsDirectory;
-			}
+			if((strContext == AppDefs.FileDialogContext.Database) &&
+				(Program.Config.Defaults.FileSaveAsDirectory.Length != 0))
+				sfd.InitialDirectory = Program.Config.Defaults.FileSaveAsDirectory;
 
 			return sfd;
 		}
@@ -1364,6 +1370,15 @@ namespace KeePass.UI
 
 			try
 			{
+				if(NativeLib.IsUnix())
+				{
+					btn.FlatStyle = FlatStyle.Standard;
+					btn.TextImageRelation = TextImageRelation.ImageBeforeText;
+					btn.Image = (bSetShield ? GetShieldBitmap(
+						DpiUtil.ScaleIntX(15), DpiUtil.ScaleIntY(15)) : null);
+					return;
+				}
+
 				if(btn.FlatStyle != FlatStyle.System)
 				{
 					Debug.Assert(false);
@@ -1401,9 +1416,9 @@ namespace KeePass.UI
 		// }
 
 		public static void ConfigureTbButton(ToolStripItem tb, string strText,
-			string strTooltip)
+			string strToolTip)
 		{
-			ConfigureTbButton(tb, strText, strTooltip, null);
+			ConfigureTbButton(tb, strText, strToolTip, null);
 		}
 
 		public static void ConfigureTbButton(ToolStripItem tb, string strText,
@@ -1696,8 +1711,7 @@ namespace KeePass.UI
 
 			if(bSetImage)
 			{
-				Image img = null;
-
+				Image img;
 				if(bChecked)
 				{
 					if(g_bmpCheck == null)
@@ -2341,7 +2355,8 @@ namespace KeePass.UI
 		{
 			if(lv == null) { Debug.Assert(false); return null; }
 
-			int scrY = NativeMethods.GetScrollPosY(lv.Handle);
+			int scrY = NativeMethods.GetScrollPos(lv.Handle,
+				NativeMethods.ScrollBarDirection.SB_VERT);
 			int idxTop = GetTopVisibleItem(lv);
 
 			// Fix index-based scroll position
@@ -2841,16 +2856,15 @@ namespace KeePass.UI
 		{
 			if(ico == null) { Debug.Assert(false); return null; }
 
-			MemoryStream ms = new MemoryStream();
 			try
 			{
-				ico.Save(ms);
-				byte[] pb = ms.ToArray();
-
-				return GfxUtil.LoadImage(pb); // Extracts best image from ICO
+				using(MemoryStream ms = new MemoryStream())
+				{
+					ico.Save(ms);
+					return GfxUtil.LoadImage(ms.ToArray()); // Extracts best image
+				}
 			}
 			catch { Debug.Assert(false); }
-			finally { ms.Close(); }
 
 			return null;
 		}
@@ -3077,13 +3091,11 @@ namespace KeePass.UI
 
 			try
 			{
-				string strRoot = "HKEY_CURRENT_USER\\AppEvents\\Schemes\\Apps\\.Default\\WindowsUAC\\";
+				const string strRoot = "HKEY_CURRENT_USER\\AppEvents\\Schemes\\Apps\\.Default\\WindowsUAC\\";
 
-				string strWav = (Registry.GetValue(strRoot + ".Current",
-					string.Empty, string.Empty) as string);
+				string strWav = RegUtil.GetValue<string>(strRoot + ".Current", string.Empty);
 				if(string.IsNullOrEmpty(strWav))
-					strWav = (Registry.GetValue(strRoot + ".Default",
-						string.Empty, string.Empty) as string);
+					strWav = RegUtil.GetValue<string>(strRoot + ".Default", string.Empty);
 				if(string.IsNullOrEmpty(strWav))
 					strWav = "%SystemRoot%\\Media\\Windows User Account Control.wav";
 
@@ -3900,6 +3912,85 @@ namespace KeePass.UI
 				if(cmb.DropDownWidth != w) cmb.DropDownWidth = w;
 			}
 			catch(Exception) { Debug.Assert(false); }
+		}
+
+		private static Dictionary<ulong, Bitmap> g_dShields = null;
+		private static Bitmap GetShieldBitmap(int w, int h)
+		{
+			if(w <= 0) { Debug.Assert(w == 0); w = GetSmallIconSize().Width; }
+			if(h <= 0) { Debug.Assert(h == 0); h = GetSmallIconSize().Height; }
+
+			if(g_dShields == null) g_dShields = new Dictionary<ulong, Bitmap>();
+
+			ulong k = ((ulong)(uint)w << 32) | (uint)h;
+			Bitmap bmp;
+			if(g_dShields.TryGetValue(k, out bmp)) return bmp;
+
+			try
+			{
+				if(!NativeLib.IsUnix())
+				{
+					IntPtr hIcon = IntPtr.Zero;
+					if(NativeMethods.LoadIconWithScaleDown(IntPtr.Zero,
+						NativeMethods.MakeIntResource(NativeMethods.IDI_SHIELD),
+						w, h, ref hIcon) >= 0)
+					{
+						if(hIcon != IntPtr.Zero)
+						{
+							using(Icon ico = Icon.FromHandle(hIcon))
+							{
+								bmp = IconToBitmap(ico, w, h);
+							}
+
+							if(!NativeMethods.DestroyIcon(hIcon)) { Debug.Assert(false); }
+						}
+						else { Debug.Assert(false); }
+					}
+					else { Debug.Assert(false); }
+				}
+			}
+			catch(Exception) { Debug.Assert(false); }
+
+			if(bmp == null) bmp = IconToBitmap(SystemIcons.Shield, w, h);
+
+			g_dShields[k] = bmp;
+			return bmp;
+		}
+
+		internal static Bitmap AddShieldOverlay(Image imgBase)
+		{
+			if(imgBase == null) { Debug.Assert(false); return null; }
+
+			int w = imgBase.Width, h = imgBase.Height;
+
+			Bitmap bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+			using(Graphics g = Graphics.FromImage(bmp))
+			{
+				g.Clear(Color.Transparent);
+				g.DrawImage(imgBase, 0, 0, w, h);
+
+				if((w >= 2) && (h >= 2))
+				{
+					int wHalf = w >> 1, hHalf = h >> 1;
+
+					Bitmap bmpShield = GetShieldBitmap(wHalf, hHalf);
+					if(bmpShield != null)
+						g.DrawImage(bmpShield, wHalf, hHalf, wHalf, hHalf);
+					else { Debug.Assert(false); }
+				}
+				else { Debug.Assert(false); }
+			}
+
+			return bmp;
+		}
+
+		internal static string GetDialogNoShowAgainText(string strDefault)
+		{
+			string str = KPRes.DialogNoShowAgain;
+			if(string.IsNullOrEmpty(strDefault)) return str;
+
+			return Program.Translation.CombineToSentence(StrUtil.TrimDots(
+				str, true), KPRes.AlwaysP.Replace("{PARAM}", strDefault));
 		}
 	}
 }

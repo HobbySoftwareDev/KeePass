@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -27,11 +26,11 @@ using KeePass.Resources;
 
 using KeePassLib;
 using KeePassLib.Interfaces;
-using KeePassLib.Security;
 using KeePassLib.Utility;
 
 namespace KeePass.DataExchange.Formats
 {
+	// 66-116+
 	internal sealed class ChromeCsv66 : FileFormatProvider
 	{
 		public override bool SupportsImport { get { return true; } }
@@ -43,46 +42,24 @@ namespace KeePass.DataExchange.Formats
 
 		public override bool ImportAppendsToRootGroupOnly { get { return true; } }
 
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
-			StreamReader sr = new StreamReader(sInput, StrUtil.Utf8, true);
-			string str = sr.ReadToEnd();
-			sr.Close();
+			string str = MemUtil.ReadString(sInput, StrUtil.Utf8);
 
 			CsvOptions opt = new CsvOptions();
 			opt.BackslashIsEscape = false;
 
 			CsvStreamReaderEx csr = new CsvStreamReaderEx(str, opt);
 
-			while(true)
-			{
-				string[] vLine = csr.ReadLine();
-				if(vLine == null) break;
+			CsvTableEntryReader tr = new CsvTableEntryReader(pdStorage);
+			tr.SetDataAppend("name", PwDefs.TitleField);
+			tr.SetDataAppend("username", PwDefs.UserNameField);
+			tr.SetDataAppend("password", PwDefs.PasswordField);
+			tr.SetDataAppend("url", PwDefs.UrlField);
+			tr.SetDataAppend("note", PwDefs.NotesField);
 
-				AddEntry(vLine, pwStorage);
-			}
-		}
-
-		private static void AddEntry(string[] vLine, PwDatabase pd)
-		{
-			if(vLine.Length != 4) { Debug.Assert(vLine.Length == 0); return; }
-
-			if(vLine[0].Equals("name", StrUtil.CaseIgnoreCmp) &&
-				vLine[1].Equals("url", StrUtil.CaseIgnoreCmp))
-				return;
-
-			PwEntry pe = new PwEntry(true, true);
-			pd.RootGroup.AddEntry(pe, true);
-
-			pe.Strings.Set(PwDefs.TitleField, new ProtectedString(
-				pd.MemoryProtection.ProtectTitle, vLine[0]));
-			pe.Strings.Set(PwDefs.UrlField, new ProtectedString(
-				pd.MemoryProtection.ProtectUrl, vLine[1]));
-			pe.Strings.Set(PwDefs.UserNameField, new ProtectedString(
-				pd.MemoryProtection.ProtectUserName, vLine[2]));
-			pe.Strings.Set(PwDefs.PasswordField, new ProtectedString(
-				pd.MemoryProtection.ProtectPassword, vLine[3]));
+			tr.Read(csr);
 		}
 	}
 }

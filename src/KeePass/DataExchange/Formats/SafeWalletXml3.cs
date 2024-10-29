@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,26 +72,21 @@ namespace KeePass.DataExchange.Formats
 
 		public override bool ImportAppendsToRootGroupOnly { get { return false; } }
 
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
-			StreamReader sr = new StreamReader(sInput, Encoding.Unicode);
-			string strDoc = sr.ReadToEnd();
-			sr.Close();
-
-			XmlDocument xd = XmlUtilEx.CreateXmlDocument();
-			xd.LoadXml(strDoc);
+			XmlDocument xd = XmlUtilEx.LoadXmlDocument(sInput, Encoding.Unicode);
 
 			XmlNode xnRoot = xd.DocumentElement;
 			Debug.Assert(xnRoot.Name == "SafeWallet");
 			foreach(XmlNode xn in xnRoot.ChildNodes)
 			{
 				if(Array.IndexOf<string>(ElemsGroup, xn.Name) >= 0)
-					AddGroup(xn, pwStorage.RootGroup, pwStorage); // 2.4.1.2
+					AddGroup(xn, pdStorage.RootGroup, pdStorage); // 2.4.1.2
 				else if(Array.IndexOf<string>(ElemsEntry, xn.Name) >= 0)
-					AddEntry(xn, pwStorage.RootGroup, pwStorage); // 3.0.4
+					AddEntry(xn, pdStorage.RootGroup, pdStorage); // 3.0.4
 				else if(Array.IndexOf<string>(ElemsVault, xn.Name) >= 0)
-					ImportVault(xn, pwStorage); // 3.0.5
+					ImportVault(xn, pdStorage); // 3.0.5
 			}
 		}
 
@@ -116,8 +111,7 @@ namespace KeePass.DataExchange.Formats
 						string strMap = ImportUtil.MapNameToStandardField(strField, false);
 						if(string.IsNullOrEmpty(strMap)) strMap = strField;
 
-						ImportUtil.AppendToField(pe, strMap,
-							XmlUtil.SafeInnerText(xn), pd);
+						ImportUtil.Add(pe, strMap, xn, pd);
 					}
 				}
 				else { Debug.Assert(false); } // Unknown node

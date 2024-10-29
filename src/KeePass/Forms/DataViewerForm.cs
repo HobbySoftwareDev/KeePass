@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,9 +22,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
@@ -34,7 +31,6 @@ using KeePass.Resources;
 using KeePass.UI;
 using KeePass.Util;
 
-using KeePassLib;
 using KeePassLib.Utility;
 
 using NativeLib = KeePassLib.Native.NativeLib;
@@ -65,7 +61,7 @@ namespace KeePass.Forms
 		private bool m_bDataExpanded = false;
 
 		private string m_strInitialFormRect = string.Empty;
-		private RichTextBoxContextMenu m_ctxText = new RichTextBoxContextMenu();
+		private readonly RichTextBoxContextMenu m_ctxText = new RichTextBoxContextMenu();
 
 		private Image m_img = null;
 		private Image m_imgResized = null;
@@ -273,7 +269,7 @@ namespace KeePass.Forms
 			{
 				if((i % cbLine) == 0)
 				{
-					sb.Append(Convert.ToString(i, 16).ToUpper().PadLeft(
+					sb.Append(Convert.ToString(i, 16).ToUpperInvariant().PadLeft(
 						iMaxAddrWidth, '0'));
 					sb.Append(": ");
 				}
@@ -662,7 +658,7 @@ namespace KeePass.Forms
 				if(!str.EndsWith("%")) continue;
 				str = str.Substring(0, str.Length - 1);
 
-				int zItem = 0;
+				int zItem;
 				if(!int.TryParse(str, out zItem)) { Debug.Assert(false); continue; }
 
 				int d = Math.Abs(z - zItem);

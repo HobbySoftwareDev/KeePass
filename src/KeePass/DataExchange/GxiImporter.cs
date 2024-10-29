@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -107,8 +107,7 @@ namespace KeePass.DataExchange
 			// an all-or-nothing import
 			PwGroup pgVirt = new PwGroup(true, true);
 
-			try { ImportPriv(pgVirt, s, p, pdContext, sl); }
-			finally { s.Close(); }
+			ImportPriv(pgVirt, s, p, pdContext);
 
 			foreach(PwGroup pg in pgVirt.Groups)
 				pgStorage.AddGroup(pg, true);
@@ -117,21 +116,17 @@ namespace KeePass.DataExchange
 		}
 
 		private static void ImportPriv(PwGroup pgStorage, Stream s, GxiProfile p,
-			PwDatabase pdContext, IStatusLogger sl)
+			PwDatabase pdContext)
 		{
 			StrEncodingInfo sei = StrUtil.GetEncoding(p.Encoding);
-			StreamReader srRaw;
-			if((sei != null) && (sei.Encoding != null))
-				srRaw = new StreamReader(s, sei.Encoding, true);
-			else srRaw = new StreamReader(s, true);
-			string strDoc = srRaw.ReadToEnd();
-			srRaw.Close();
+			Encoding enc = (((sei != null) ? sei.Encoding : null) ?? StrUtil.Utf8);
+			string strDoc = MemUtil.ReadString(s, enc);
 
 			strDoc = Preprocess(strDoc, p);
 
-			using(StringReader srDoc = new StringReader(strDoc))
+			using(StringReader sr = new StringReader(strDoc))
 			{
-				using(XmlReader xr = XmlReader.Create(srDoc,
+				using(XmlReader xr = XmlReader.Create(sr,
 					XmlUtilEx.CreateXmlReaderSettings()))
 				{
 					XPathDocument xd = new XPathDocument(xr);

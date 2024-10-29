@@ -18,10 +18,9 @@
 	<meta name="DC.type" content="Text" />
 	<meta name="DC.format" content="text/html" />
 	<meta name="DC.language" content="en" />
-	<meta name="DC.rights" content="Copyright (C) 2003-2023 Dominik Reichl" />
+	<meta name="DC.rights" content="Copyright (C) 2003-2024 Dominik Reichl" />
 
 	<meta name="robots" content="index, follow" />
-	<meta name="flattr:id" content="42rykv" />
 
 	<title>Security - KeePass</title>
 	<base target="_self" />
@@ -78,7 +77,8 @@ notes, etc.</p>
 
 <tr><td>Advanced Encryption Standard (AES / Rijndael)</td>
 <td>256 bits</td>
-<td><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf"
+<!-- https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf -->
+<td><a href="https://csrc.nist.gov/pubs/fips/197/final"
 target="_blank">NIST FIPS 197</a></td></tr>
 
 <tr><td>Twofish</td>
@@ -95,13 +95,14 @@ target="_blank">Info</a></td></tr>
 
 <tr><td>Advanced Encryption Standard (AES / Rijndael)</td>
 <td>256 bits</td>
-<td><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf"
+<!-- https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf -->
+<td><a href="https://csrc.nist.gov/pubs/fips/197/final"
 target="_blank">NIST FIPS 197</a></td></tr>
 
 <tr><td>ChaCha20</td>
 <td>256 bits</td>
-<td><a href="https://tools.ietf.org/html/rfc7539"
-target="_blank">RFC 7539</a></td></tr>
+<td><a href="https://datatracker.ietf.org/doc/html/rfc8439"
+target="_blank">RFC 8439</a></td></tr>
 
 <tr><td colspan="3">There exist various
 <a href="https://keepass.info/plugins.html" target="_blank">plugins</a>
@@ -145,7 +146,13 @@ a HMAC-SHA-256 hash of the ciphertext (Encrypt-then-MAC scheme).
 <br />
 <br /><br /> -->
 
-<p>KeePass 2.x supports the <a href="faq_tech.html#fips2x">FIPS mode</a>.</p>
+<p>See also:</p>
+
+<ul>
+<li><a href="https://keepass.info/help/kb/kdbx.html"
+target="_blank">KDBX file format specification</a>.</li>
+<li><a href="faq_tech.html#fips2x">FIPS mode support</a>.</li>
+</ul>
 
 <br />
 
@@ -391,22 +398,21 @@ before releasing them.</p>
 
 <p>KeePass uses the Windows DPAPI for encrypting sensitive data in memory
 <!-- https://msdn.microsoft.com/en-us/library/windows/desktop/aa380262.aspx -->
-(via <a href="https://docs.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectmemory"
+<!-- https://docs.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectmemory -->
+(via <a href="https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectmemory"
 target="_blank">CryptProtectMemory</a> /
 <!-- https://msdn.microsoft.com/en-us/library/system.security.cryptography.protectedmemory.aspx -->
-<a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.protectedmemory"
+<!-- https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.protectedmemory -->
+<a href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.protectedmemory"
 target="_blank">ProtectedMemory</a>).
 With DPAPI, the key for the memory encryption is stored in a
 secure, non-swappable memory area managed by Windows.
 DPAPI is available on Windows 2000 and higher.
-KeePass 2.x always uses DPAPI when it is available;
-in KeePass 1.x, this can be disabled (in the advanced options; by default
-using DPAPI is enabled; if it is disabled, KeePass 1.x uses the ARC4 encryption
-algorithm with a random key; note that this is less secure than DPAPI, mainly <i>not</i>
-because ARC4 cryptographically is not that strong, but because the key for
-the memory encryption is also stored in swappable process memory;
-similarly, KeePass 2.x falls back to encrypting the process memory using
-ChaCha20, if DPAPI is unavailable).
+KeePass 2.x always uses DPAPI if it is available; in KeePass 1.x, it can be
+disabled (in the advanced options; DPAPI usage is enabled by default).
+If DPAPI is unavailable or disabled, KeePass falls back to encrypting the
+process memory using ChaCha20 with a random key; note that this is less secure
+than DPAPI, because the key is also stored in swappable process memory.
 On Unix-like systems, KeePass 2.x uses ChaCha20, because Mono does not provide
 any effective memory protection method.</p>
 
@@ -417,9 +423,11 @@ the cell content (the password) as unencrypted string
 (unless hiding using asterisks is enabled).
 Operations that result in unencrypted data in the process memory include,
 but are not limited to: displaying data (not asterisks) in standard controls,
-searching data, replacing placeholders (during auto-type, drag&amp;drop,
-copying to clipboard, ...), importing/exporting files (except KDBX)
-and loading/saving unencrypted files.
+transferring data to/from other applications (via the clipboard, drag&amp;drop,
+StdIn/StdOut, ...),
+replacing placeholders (e.g. during auto-type),
+searching data (e.g. the commands in the 'Find' menu that involve sensitive data),
+importing/exporting files (except KDBX) and loading/saving unencrypted files.
 Windows and .NET may make copies of the data (in the process memory)
 that cannot be erased by KeePass.</p>
 
@@ -550,7 +558,8 @@ target="_blank" rel="nofollow">Ten Immutable Laws of Security</a>
 (Microsoft TechNet article; see also the
 Microsoft TechNet article
 <!-- https://technet.microsoft.com/en-us/library/2008.10.securitywatch.aspx -->
-<a href="https://docs.microsoft.com/en-us/previous-versions/technet-magazine/cc895640(v=msdn.10)"
+<!-- https://docs.microsoft.com/en-us/previous-versions/technet-magazine/cc895640(v=msdn.10) -->
+<a href="https://learn.microsoft.com/en-us/previous-versions/technet-magazine/cc895640(v=msdn.10)"
 target="_blank">Revisiting the 10 Immutable Laws of Security, Part 1</a>):<br />
 <i>&quot;If a bad guy can persuade you to run his program on your
 computer, it's not your computer anymore&quot;</i>.</p>

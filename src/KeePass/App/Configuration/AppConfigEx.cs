@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ using KeePassLib.Utility;
 namespace KeePass.App.Configuration
 {
 	[XmlType(AppConfigEx.StrXmlTypeName)]
-	public sealed class AppConfigEx
+	public sealed partial class AppConfigEx
 	{
 		internal const string StrXmlTypeName = "Configuration";
 
@@ -266,6 +266,7 @@ namespace KeePass.App.Configuration
 			AceSearch aceSearch = this.Search; // m_aceSearch might be null
 			AceDefaults aceDef = this.Defaults; // m_def might be null
 
+			aceMeta.Version = StrUtil.VersionToString(PwDefs.FileVersion64);
 			aceMeta.OmitItemsWithDefaultValues = true;
 			aceMeta.DpiFactorX = DpiUtil.FactorX; // For new (not loaded) cfgs.
 			aceMeta.DpiFactorY = DpiUtil.FactorY;
@@ -277,7 +278,7 @@ namespace KeePass.App.Configuration
 
 			if(!aceDef.RememberKeySources) aceDef.KeySources.Clear();
 
-			aceApp.TriggerSystem = Program.TriggerSystem;
+			// aceApp.TriggerSystem = Program.TriggerSystem;
 
 			SearchUtil.PrepareForSerialize(aceSearch.LastUsedProfile);
 			foreach(SearchParameters sp in aceSearch.UserProfiles)
@@ -290,9 +291,11 @@ namespace KeePass.App.Configuration
 
 		internal void OnLoad()
 		{
-			AceMainWindow aceMW = this.MainWindow; // m_uiMainWindow might be null
-			AceSearch aceSearch = this.Search; // m_aceSearch might be null
-			AceDefaults aceDef = this.Defaults; // m_def might be null
+			ulong uVersion = this.Meta.GetVersion();
+			AceMainWindow aceMW = this.MainWindow;
+			AceSecurity aceSec = this.Security;
+			AceSearch aceSearch = this.Search;
+			AceIntegration aceInt = this.Integration;
 
 			// aceInt.UrlSchemeOverrides.SetDefaultsIfEmpty();
 
@@ -301,13 +304,11 @@ namespace KeePass.App.Configuration
 
 			// Remove invalid columns
 			List<AceColumn> lColumns = aceMW.EntryListColumns;
-			int i = 0;
-			while(i < lColumns.Count)
+			for(int i = lColumns.Count - 1; i >= 0; --i)
 			{
-				if(((int)lColumns[i].Type < 0) || ((int)lColumns[i].Type >=
-					(int)AceColumnType.Count))
+				int t = (int)lColumns[i].Type;
+				if((t < 0) || (t >= (int)AceColumnType.Count))
 					lColumns.RemoveAt(i);
-				else ++i;
 			}
 
 			SearchUtil.FinishDeserialize(aceSearch.LastUsedProfile);
@@ -316,17 +317,38 @@ namespace KeePass.App.Configuration
 
 			DpiScale();
 
+			// AceFont af = this.UI.PasswordFont;
+			// Debug.Assert(af.GraphicsUnit == GraphicsUnit.Point);
+			// float fSize = ((af.GraphicsUnit == GraphicsUnit.Point) ? af.Size :
+			//	af.ToFont().SizeInPoints);
+			// if(fSize > AceUI.PasswordFontSizeMaximum)
+			// {
+			//	Debug.Assert(false);
+			//	af.Size = AceUI.PasswordFontSizeMaximum;
+			//	af.GraphicsUnit = GraphicsUnit.Point;
+			// }
+
 			if(aceMW.EscMinimizesToTray) // For backward compatibility
 			{
 				aceMW.EscMinimizesToTray = false; // Default value
 				aceMW.EscAction = AceEscAction.MinimizeToTray;
 			}
 
+			// As of KeePass 2.54, all built-in URL scheme overrides are disabled
+			// by default; silently disable defaults of older versions
+			Debug.Assert((new AceUrlSchemeOverrides()).BuiltInOverridesEnabled == 0UL);
+			if(uVersion < 0x0002003600000000UL) // < 2.54
+			{
+				ulong u = aceInt.UrlSchemeOverrides.BuiltInOverridesEnabled;
+				if((u == 0x1UL) || (u == 0x1000000UL))
+					aceInt.UrlSchemeOverrides.BuiltInOverridesEnabled = 0;
+			}
+
 			if(NativeLib.IsUnix())
 			{
-				this.Security.MasterKeyOnSecureDesktop = false;
+				aceSec.PreventScreenCapture = false;
+				aceSec.MasterKeyOnSecureDesktop = false;
 
-				AceIntegration aceInt = this.Integration;
 				aceInt.HotKeyGlobalAutoType = (long)Keys.None;
 				aceInt.HotKeyGlobalAutoTypePassword = (long)Keys.None;
 				aceInt.HotKeySelectedAutoType = (long)Keys.None;
@@ -336,7 +358,7 @@ namespace KeePass.App.Configuration
 
 			if(MonoWorkarounds.IsRequired(1378))
 			{
-				AceWorkspaceLocking aceWL = this.Security.WorkspaceLocking;
+				AceWorkspaceLocking aceWL = aceSec.WorkspaceLocking;
 				aceWL.LockOnSessionSwitch = false;
 				aceWL.LockOnSuspend = false;
 				aceWL.LockOnRemoteControlChange = false;
@@ -426,8 +448,7 @@ namespace KeePass.App.Configuration
 			AceApplication aceApp = this.Application; // m_aceApp might be null
 			AceIntegration aceInt = this.Integration; // m_int might be null
 
-			if(aceApp.LastUsedFile == null) { Debug.Assert(false); }
-			else aceApp.LastUsedFile.Obfuscate(bObf);
+			aceApp.LastUsedFile.Obfuscate(bObf);
 
 			foreach(IOConnectionInfo iocMru in aceApp.MostRecentlyUsed.Items)
 			{
@@ -545,59 +566,6 @@ namespace KeePass.App.Configuration
 			fFont(ui.DataEditorFont);
 		}
 
-		private static Dictionary<object, string> m_dictXmlPathCache =
-			new Dictionary<object, string>();
-		public static bool IsOptionEnforced(object pContainer, PropertyInfo pi)
-		{
-			if(pContainer == null) { Debug.Assert(false); return false; }
-			if(pi == null) { Debug.Assert(false); return false; }
-
-			XmlDocument xdEnforced = AppConfigSerializer.EnforcedConfigXml;
-			if(xdEnforced == null) return false;
-
-			string strObjPath;
-			if(!m_dictXmlPathCache.TryGetValue(pContainer, out strObjPath))
-			{
-				strObjPath = XmlUtil.GetObjectXmlPath(Program.Config, pContainer);
-				if(string.IsNullOrEmpty(strObjPath)) { Debug.Assert(false); return false; }
-
-				m_dictXmlPathCache[pContainer] = strObjPath;
-			}
-
-			string strProp = XmlSerializerEx.GetXmlName(pi);
-			if(string.IsNullOrEmpty(strProp)) { Debug.Assert(false); return false; }
-
-			string strPre = strObjPath;
-			if(!strPre.EndsWith("/")) strPre += "/";
-			string strXPath = strPre + strProp;
-
-			XmlNode xn = xdEnforced.SelectSingleNode(strXPath);
-			if(xn == null) return false;
-
-			XmContext ctx = new XmContext(null, AppConfigEx.GetNodeOptions,
-				AppConfigEx.GetNodeKey);
-			return XmlUtil.IsAlwaysEnforced(xn, strXPath, ctx);
-		}
-
-		public static bool IsOptionEnforced(object pContainer, string strPropertyName)
-		{
-			if(pContainer == null) { Debug.Assert(false); return false; }
-			if(string.IsNullOrEmpty(strPropertyName)) { Debug.Assert(false); return false; }
-
-			// To improve performance (avoid type queries), check here, too
-			XmlDocument xdEnforced = AppConfigSerializer.EnforcedConfigXml;
-			if(xdEnforced == null) return false;
-
-			Type tContainer = pContainer.GetType();
-			PropertyInfo pi = tContainer.GetProperty(strPropertyName);
-			return IsOptionEnforced(pContainer, pi);
-		}
-
-		public static void ClearXmlPathCache()
-		{
-			m_dictXmlPathCache.Clear();
-		}
-
 		public void Apply(AceApplyFlags f)
 		{
 			AceApplication aceApp = this.Application; // m_aceApp might be null
@@ -616,6 +584,58 @@ namespace KeePass.App.Configuration
 				FileTransactionEx.ExtraSafe = aceApp.FileTxExtra;
 		}
 
+		private static readonly Dictionary<object, string> g_dictXmlPathCache =
+			new Dictionary<object, string>();
+		public static bool IsOptionEnforced(object oContainer, PropertyInfo pi)
+		{
+			if(oContainer == null) { Debug.Assert(false); return false; }
+			if(pi == null) { Debug.Assert(false); return false; }
+
+			XmlDocument xdEnforced = AppConfigSerializer.EnforcedConfigXml;
+			if(xdEnforced == null) return false;
+
+			string strObjPath;
+			if(!g_dictXmlPathCache.TryGetValue(oContainer, out strObjPath))
+			{
+				strObjPath = XmlUtil.GetObjectXmlPath(Program.Config, oContainer);
+				if(string.IsNullOrEmpty(strObjPath)) { Debug.Assert(false); return false; }
+
+				g_dictXmlPathCache[oContainer] = strObjPath;
+			}
+
+			string strProp = XmlSerializerEx.GetXmlName(pi);
+			if(string.IsNullOrEmpty(strProp)) { Debug.Assert(false); return false; }
+
+			string strPre = strObjPath;
+			if(!strPre.EndsWith("/")) strPre += "/";
+			string strXPath = strPre + strProp;
+
+			XmlNode xn = xdEnforced.SelectSingleNode(strXPath);
+			if(xn == null) return false;
+
+			XmContext ctx = new XmContext(null, AppConfigEx.GetNodeOptions,
+				AppConfigEx.GetNodeKey);
+			return XmlUtil.IsAlwaysEnforced(xn, strXPath, ctx);
+		}
+
+		public static bool IsOptionEnforced(object oContainer, string strPropertyName)
+		{
+			if(oContainer == null) { Debug.Assert(false); return false; }
+			if(string.IsNullOrEmpty(strPropertyName)) { Debug.Assert(false); return false; }
+
+			// To improve performance (avoid type queries), check here, too
+			XmlDocument xdEnforced = AppConfigSerializer.EnforcedConfigXml;
+			if(xdEnforced == null) return false;
+
+			PropertyInfo pi = oContainer.GetType().GetProperty(strPropertyName);
+			return IsOptionEnforced(oContainer, pi);
+		}
+
+		public static void ClearXmlPathCache()
+		{
+			g_dictXmlPathCache.Clear();
+		}
+
 		internal static void GetNodeOptions(XmNodeOptions o, string strXPath)
 		{
 			if(o == null) { Debug.Assert(false); return; }
@@ -629,13 +649,18 @@ namespace KeePass.App.Configuration
 				case "/Configuration/Application/PluginCompatibility":
 				case "/Configuration/Meta/DpiFactorX":
 				case "/Configuration/Meta/DpiFactorY":
+				case "/Configuration/Meta/PreferUserConfiguration":
+				case "/Configuration/Meta/Version":
 					o.NodeMode = XmNodeMode.None;
 					break;
 
+				case "/Configuration/Application/TriggerSystem":
 				case "/Configuration/Application/TriggerSystem/Triggers/Trigger":
 				case "/Configuration/Defaults/KeySources/Association":
+				case "/Configuration/Integration/UrlSchemeOverrides":
 				case "/Configuration/PasswordGenerator/AutoGeneratedPasswordsProfile":
-				case "/Configuration/PasswordGenerator/LastUsedProfile":
+				// case "/Configuration/PasswordGenerator/LastUsedProfile":
+				case "/Configuration/PasswordGenerator/UserProfiles":
 				case "/Configuration/PasswordGenerator/UserProfiles/Profile":
 				case "/Configuration/Search/LastUsedProfile":
 				case "/Configuration/Search/UserProfiles/Profile":
@@ -726,12 +751,37 @@ namespace KeePass.App.Configuration
 			return strA;
 		}
 
-		internal static string GetEmptyConfigXml()
+		internal static T GetPropertyValue<T>(object oContainer,
+			string strPropertyName, T tDefault, out PropertyInfo piForSet)
+		{
+			piForSet = null;
+			if(oContainer == null) { Debug.Assert(false); return tDefault; }
+			if(string.IsNullOrEmpty(strPropertyName)) { Debug.Assert(false); return tDefault; }
+
+			piForSet = oContainer.GetType().GetProperty(strPropertyName);
+			if(piForSet == null) { Debug.Assert(false); return tDefault; }
+			if(piForSet.PropertyType != typeof(T))
+			{
+				Debug.Assert(false);
+				piForSet = null;
+				return tDefault;
+			}
+
+			T t = (T)piForSet.GetValue(oContainer, null);
+			if(IsOptionEnforced(oContainer, piForSet)) piForSet = null;
+			return t;
+		}
+
+		internal static string GetEmptyXml()
 		{
 			return ("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n" +
-				"<" + StrXmlTypeName + " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n" +
-				"\t<Meta />\r\n" +
-				"</" + StrXmlTypeName + ">");
+				"<" + StrXmlTypeName + " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " +
+				"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" />");
+		}
+
+		internal static XmlDocument CreateEmptyXmlDocument()
+		{
+			return XmlUtilEx.LoadXmlDocumentFromString(GetEmptyXml());
 		}
 	}
 
@@ -750,6 +800,18 @@ namespace KeePass.App.Configuration
 	{
 		public AceMeta()
 		{
+		}
+
+		private string m_strVersion = string.Empty;
+		[DefaultValue("")]
+		public string Version
+		{
+			get { return m_strVersion; }
+			set
+			{
+				if(value == null) throw new ArgumentNullException("value");
+				m_strVersion = value;
+			}
 		}
 
 		private bool m_bPrefLocalCfg = false;
@@ -792,6 +854,12 @@ namespace KeePass.App.Configuration
 		{
 			get { return m_dDpiFactorY; }
 			set { m_dDpiFactorY = value; }
+		}
+
+		internal ulong GetVersion()
+		{
+			if(string.IsNullOrEmpty(m_strVersion)) return 0;
+			return StrUtil.ParseVersion(m_strVersion);
 		}
 	}
 }

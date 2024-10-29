@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ namespace KeePass.UI
 		private ToolTip m_tt = null;
 
 		private CustomContextMenuEx m_ctx = null;
-		private List<ColorMenuItem> m_lMenuItems = new List<ColorMenuItem>();
+		private readonly List<ColorMenuItem> m_lMenuItems = new List<ColorMenuItem>();
 
 		private Color[] m_vColors = null;
 		[Browsable(false)]

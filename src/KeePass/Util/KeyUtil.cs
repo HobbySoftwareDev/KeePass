@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,17 +20,24 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
+using System.Xml;
 
 using KeePass.App;
+using KeePass.App.Configuration;
 using KeePass.Forms;
 using KeePass.Resources;
 using KeePass.UI;
 
 using KeePassLib;
+using KeePassLib.Collections;
 using KeePassLib.Cryptography;
+using KeePassLib.Cryptography.KeyDerivation;
 using KeePassLib.Keys;
+using KeePassLib.Native;
 using KeePassLib.Resources;
 using KeePassLib.Security;
 using KeePassLib.Serialization;
@@ -40,6 +47,10 @@ namespace KeePass.Util
 {
 	public static class KeyUtil
 	{
+		private const string KdfPrcParams = "P";
+		private const string KdfPrcTime = "T";
+		private const string KdfPrcError = "E";
+
 		internal static CompositeKey CreateKey(byte[] pbPasswordUtf8,
 			string strKeyFile, bool bUserAccount, IOConnectionInfo ioc,
 			bool bNewKey, bool bSecureDesktop)
@@ -81,7 +92,7 @@ namespace KeePass.Util
 					}
 					catch(Exception ex)
 					{
-						throw new Exception(strKeyFile + strNP + ex.Message);
+						throw new ExtendedException(strKeyFile, ex);
 					}
 					finally { if(pbKey != null) MemUtil.ZeroByteArray(pbKey); }
 				}
@@ -90,8 +101,8 @@ namespace KeePass.Util
 					try { ck.AddUserKey(new KcpKeyFile(strKeyFile, bNewKey)); }
 					catch(Exception ex)
 					{
-						throw new Exception(strKeyFile + strNP + KLRes.FileLoadFailed +
-							strNP + ex.Message);
+						throw new ExtendedException(strKeyFile + strNP +
+							KLRes.FileLoadFailed, ex);
 					}
 				}
 			}
@@ -311,11 +322,19 @@ namespace KeePass.Util
 
 		public static bool ReAskKey(PwDatabase pd, bool bFailWithUI)
 		{
+			return ReAskKey(pd, bFailWithUI, null);
+		}
+
+		internal static bool ReAskKey(PwDatabase pd, bool bFailWithUI,
+			string strContext)
+		{
 			if(pd == null) { Debug.Assert(false); return false; }
+
+			string strTitle = GetReAskKeyTitle(strContext);
 
 			KeyPromptFormResult r;
 			DialogResult dr = KeyPromptForm.ShowDialog(pd.IOConnectionInfo,
-				false, KPRes.EnterCurrentCompositeKey, out r);
+				false, strTitle, out r);
 			if((dr != DialogResult.OK) || (r == null)) return false;
 
 			CompositeKey ck = r.CompositeKey;
@@ -326,6 +345,194 @@ namespace KeePass.Util
 					KLRes.InvalidCompositeKeyHint);
 
 			return bEqual;
+		}
+
+		internal static string GetReAskKeyTitle(string strContext)
+		{
+			string str = KPRes.EnterCurrentCompositeKey;
+
+			if(!string.IsNullOrEmpty(strContext))
+				str += " (" + strContext + ")";
+
+			return str;
+		}
+
+		// Returns false if the child process cannot be spawned.
+		// Throws an exception if an exception occurs in the child process
+		// during the KDF computation.
+		internal static bool KdfPrcTest(KdfParameters p, out ulong uTimeMS)
+		{
+			uTimeMS = 0;
+			if(p == null) { Debug.Assert(false); return false; }
+
+			Process prc = null;
+			string strError = null;
+			try
+			{
+				VariantDictionary d = new VariantDictionary();
+				d.SetByteArray(KdfPrcParams, KdfParameters.SerializeExt(p));
+
+				string strInfoFile = Program.TempFilesPool.GetTempFileName(true);
+				File.WriteAllBytes(strInfoFile, VariantDictionary.Serialize(d));
+
+				string strArgs = "-" + AppDefs.CommandLineOptions.KdfTest +
+					":\"" + NativeLib.EncodeDataToArgs(strInfoFile) + "\"";
+
+				prc = WinUtil.StartSelfEx(strArgs);
+				if(prc == null) { Debug.Assert(false); return false; }
+				prc.WaitForExit();
+
+				d = VariantDictionary.Deserialize(File.ReadAllBytes(strInfoFile));
+
+				strError = d.GetString(KdfPrcError);
+				if(string.IsNullOrEmpty(strError))
+				{
+					uTimeMS = d.GetUInt64(KdfPrcTime, ulong.MaxValue);
+					if(uTimeMS != ulong.MaxValue) return true;
+					else { Debug.Assert(false); }
+				}
+			}
+			catch(ThreadAbortException) { }
+			catch(Exception) { Debug.Assert(false); }
+			finally
+			{
+				if(prc != null)
+				{
+					try { if(!prc.HasExited) prc.Kill(); }
+					catch(Exception) { Debug.Assert(false); }
+					try { prc.Dispose(); }
+					catch(Exception) { Debug.Assert(false); }
+				}
+			}
+
+			if(!string.IsNullOrEmpty(strError)) throw new Exception(strError);
+			return false;
+		}
+
+		// Returns true if and only if the command line parameter is present
+		internal static bool KdfPrcTestAsChild()
+		{
+			string strInfoFile = Program.CommandLineArgs[AppDefs.CommandLineOptions.KdfTest];
+			if(string.IsNullOrEmpty(strInfoFile)) return false;
+
+			VariantDictionary d = null;
+			try
+			{
+				d = VariantDictionary.Deserialize(File.ReadAllBytes(strInfoFile));
+
+				byte[] pb = d.GetByteArray(KdfPrcParams);
+				if((pb == null) || (pb.Length == 0)) { Debug.Assert(false); return true; }
+
+				KdfParameters p = KdfParameters.DeserializeExt(pb);
+				if(p == null) { Debug.Assert(false); return true; }
+
+				KdfEngine kdf = KdfPool.Get(p.KdfUuid);
+				if(kdf == null) { Debug.Assert(false); return true; }
+
+				d.SetUInt64(KdfPrcTime, kdf.Test(p));
+			}
+			catch(Exception ex)
+			{
+				Debug.Assert(false);
+				if(d != null)
+					d.SetString(KdfPrcError, StrUtil.FormatException(ex, null));
+			}
+
+			try
+			{
+				if(d != null)
+					File.WriteAllBytes(strInfoFile, VariantDictionary.Serialize(d));
+			}
+			catch(Exception) { Debug.Assert(false); }
+			return true;
+		}
+
+		internal static bool KdfAdjustWeakParameters(ref KdfParameters p,
+			IOConnectionInfo iocDatabase)
+		{
+			if(p == null) { Debug.Assert(false); return false; }
+
+			bool bForce = ((Program.Config.UI.UIFlags &
+				(ulong)AceUIFlags.AdjustWeakKdfParameters) != 0);
+			if(!Program.Config.Security.KeyTransformWeakWarning && !bForce) return false;
+
+			KdfEngine kdf = KdfPool.Get(p.KdfUuid);
+			if(kdf == null) { Debug.Assert(false); return false; }
+			if(!kdf.AreParametersWeak(p)) return false;
+
+			string strMsg = KPRes.KeyTransformWeak + MessageService.NewParagraph +
+				KPRes.KeyTransformDefaultsQ;
+			string strPath = ((iocDatabase != null) ? iocDatabase.GetDisplayName() : null);
+			if(!string.IsNullOrEmpty(strPath))
+				strMsg = strPath + MessageService.NewParagraph + strMsg;
+
+			VistaTaskDialog dlg = new VistaTaskDialog();
+			dlg.Content = strMsg;
+			dlg.DefaultButtonID = (int)DialogResult.OK;
+			dlg.EnableHyperlinks = true;
+			dlg.FooterText = VistaTaskDialog.CreateLink("h", KPRes.MoreInfo);
+			dlg.VerificationText = UIUtil.GetDialogNoShowAgainText(KPRes.No);
+			dlg.WindowTitle = PwDefs.ShortProductName;
+			dlg.SetIcon(VtdCustomIcon.Question);
+			dlg.SetFooterIcon(VtdIcon.Information);
+			dlg.AddButton((int)DialogResult.OK, KPRes.YesCmd, null);
+			dlg.AddButton((int)DialogResult.Cancel, KPRes.NoCmd, null);
+
+			dlg.LinkClicked += delegate(object sender, LinkClickedEventArgs e)
+			{
+				string str = ((e != null) ? e.LinkText : null);
+				if(string.Equals(str, "h", StrUtil.CaseIgnoreCmp))
+					AppHelp.ShowHelp(AppDefs.HelpTopics.Security,
+						AppDefs.HelpTopics.SecurityDictProt);
+				else { Debug.Assert(false); }
+			};
+
+			int dr;
+			if(bForce) dr = (int)DialogResult.OK;
+			else if(dlg.ShowDialog())
+			{
+				dr = dlg.Result;
+				if(dlg.ResultVerificationChecked)
+					Program.Config.Security.KeyTransformWeakWarning = false;
+			}
+			else
+				dr = (MessageService.AskYesNo(strMsg) ? (int)DialogResult.OK :
+					(int)DialogResult.Cancel);
+
+			if(dr == (int)DialogResult.OK)
+			{
+				p = kdf.GetDefaultParameters();
+				return true;
+			}
+			return false;
+		}
+
+		internal static bool HasKeyExpired(PwDatabase pd, string strExpiry,
+			string strDesc)
+		{
+			if((pd == null) || !pd.IsOpen) { Debug.Assert(false); return false; }
+
+			strExpiry = (strExpiry ?? string.Empty).Trim();
+			if(strExpiry.Length == 0) return false;
+
+			try
+			{
+				DateTime dtChanged = pd.MasterKeyChanged;
+
+				if(strExpiry.StartsWith("P", StrUtil.CaseIgnoreCmp) ||
+					strExpiry.StartsWith("-P", StrUtil.CaseIgnoreCmp))
+				{
+					TimeSpan ts = XmlConvert.ToTimeSpan(strExpiry);
+					return ((dtChanged + ts) < DateTime.UtcNow);
+				}
+
+				DateTime dt = XmlConvert.ToDateTime(strExpiry,
+					XmlDateTimeSerializationMode.Utc);
+				return (dtChanged < dt);
+			}
+			catch(Exception ex) { MessageService.ShowWarning(strDesc, ex); }
+
+			return false;
 		}
 	}
 }

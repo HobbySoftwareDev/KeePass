@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ namespace KeePass.UI.ToolStripRendering
 {
 	internal sealed class KeePassTsrFactory : TsrFactory
 	{
-		private PwUuid m_uuid = new PwUuid(new byte[] {
+		private readonly PwUuid m_uuid = new PwUuid(new byte[] {
 			0x05, 0x0A, 0x57, 0xF0, 0x7B, 0xBC, 0x34, 0xAF,
 			0x5B, 0x8F, 0xA1, 0x31, 0xDB, 0xBF, 0x2B, 0xEC
 		});
@@ -165,38 +165,29 @@ namespace KeePass.UI.ToolStripRendering
 				}
 
 				Graphics g = e.Graphics;
-				if(g != null)
+				using(GraphicsPath gp = UIUtil.CreateRoundedRectangle(rect.X,
+					rect.Y, rect.Width, rect.Height, DpiUtil.ScaleIntY(2)))
 				{
-					LinearGradientBrush br = new LinearGradientBrush(rect,
-						clrStart, clrEnd, LinearGradientMode.Vertical);
-					Pen p = new Pen(clrBorder);
-
-					SmoothingMode smOrg = g.SmoothingMode;
-					g.SmoothingMode = SmoothingMode.HighQuality;
-
-					GraphicsPath gp = UIUtil.CreateRoundedRectangle(rect.X, rect.Y,
-						rect.Width, rect.Height, DpiUtil.ScaleIntY(2));
-					if(gp != null)
+					if((g != null) && (gp != null))
 					{
-						g.FillPath(br, gp);
-						g.DrawPath(p, gp);
+						using(LinearGradientBrush br = new LinearGradientBrush(
+							rect, clrStart, clrEnd, LinearGradientMode.Vertical))
+						{
+							using(Pen p = new Pen(clrBorder))
+							{
+								SmoothingMode smOrg = g.SmoothingMode;
+								g.SmoothingMode = SmoothingMode.HighQuality;
 
-						gp.Dispose();
+								g.FillPath(br, gp);
+								g.DrawPath(p, gp);
+
+								g.SmoothingMode = smOrg;
+								return;
+							}
+						}
 					}
-					else // Shouldn't ever happen...
-					{
-						Debug.Assert(false);
-						g.FillRectangle(br, rect);
-						g.DrawRectangle(p, rect);
-					}
-
-					g.SmoothingMode = smOrg;
-
-					p.Dispose();
-					br.Dispose();
-					return;
+					else { Debug.Assert(false); }
 				}
-				else { Debug.Assert(false); }
 			}
 
 			base.OnRenderMenuItemBackground(e);

@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,18 +19,18 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 
-using StrDict = System.Collections.Generic.SortedDictionary<string, string>;
+using StrDict = System.Collections.Generic.Dictionary<string, string>;
 
 namespace KeePass.Util
 {
 	public sealed class IniFile
 	{
-		private SortedDictionary<string, StrDict> m_vSections =
-			new SortedDictionary<string, StrDict>();
+		private readonly Dictionary<string, StrDict> m_dSections =
+			new Dictionary<string, StrDict>();
 
 		public IniFile()
 		{
@@ -38,14 +38,12 @@ namespace KeePass.Util
 
 		public static IniFile Read(string strFile, Encoding enc)
 		{
-			StreamReader sr = null;
 			IniFile ini = new IniFile();
 
-			try
+			using(StreamReader sr = new StreamReader(strFile, enc, true))
 			{
-				sr = new StreamReader(strFile, enc);
-
 				string strSection = string.Empty;
+
 				while(true)
 				{
 					string str = sr.ReadLine();
@@ -62,17 +60,18 @@ namespace KeePass.Util
 						if(iSep < 0) { Debug.Assert(false); }
 						else
 						{
-							string strKey = str.Substring(0, iSep);
-							string strValue = str.Substring(iSep + 1);
+							StrDict d;
+							if(!ini.m_dSections.TryGetValue(strSection, out d))
+							{
+								d = new StrDict();
+								ini.m_dSections[strSection] = d;
+							}
 
-							if(!ini.m_vSections.ContainsKey(strSection))
-								ini.m_vSections.Add(strSection, new StrDict());
-							ini.m_vSections[strSection][strKey] = strValue;
+							d[str.Substring(0, iSep)] = str.Substring(iSep + 1);
 						}
 					}
 				}
 			}
-			finally { if(sr != null) sr.Close(); }
 
 			return ini;
 		}
@@ -82,12 +81,11 @@ namespace KeePass.Util
 			if(strSection == null) throw new ArgumentNullException("strSection");
 			if(strKey == null) throw new ArgumentNullException("strKey");
 
-			StrDict dict;
-			if(!m_vSections.TryGetValue(strSection, out dict)) return null;
+			StrDict d;
+			if(!m_dSections.TryGetValue(strSection, out d)) return null;
 
 			string strValue;
-			if(!dict.TryGetValue(strKey, out strValue)) return null;
-
+			d.TryGetValue(strKey, out strValue);
 			return strValue;
 		}
 	}

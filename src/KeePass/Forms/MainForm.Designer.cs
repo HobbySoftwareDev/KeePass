@@ -159,6 +159,11 @@
 			this.m_menuEntryRearrangeSep0 = new System.Windows.Forms.ToolStripSeparator();
 			this.m_menuEntryMoveToGroup = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuEntryMoveToPreviousParent = new System.Windows.Forms.ToolStripMenuItem();
+			this.m_menuEntryCompare = new System.Windows.Forms.ToolStripMenuItem();
+			this.m_menuEntryCompare2 = new System.Windows.Forms.ToolStripMenuItem();
+			this.m_menuEntryCompareSep0 = new System.Windows.Forms.ToolStripSeparator();
+			this.m_menuEntryCompareMark = new System.Windows.Forms.ToolStripMenuItem();
+			this.m_menuEntryCompare1 = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuEntryDX = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuEntryClipCopy = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuEntryClipCopyPlain = new System.Windows.Forms.ToolStripMenuItem();
@@ -189,6 +194,7 @@
 			this.m_menuFindExpInF = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuFindSep3 = new System.Windows.Forms.ToolStripSeparator();
 			this.m_menuFindLastMod = new System.Windows.Forms.ToolStripMenuItem();
+			this.m_menuFindHistory = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuFindLarge = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuFindSep4 = new System.Windows.Forms.ToolStripSeparator();
 			this.m_menuFindDupPasswords = new System.Windows.Forms.ToolStripMenuItem();
@@ -229,6 +235,8 @@
 			this.m_menuToolsDbXmlRep = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuToolsAdv = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuToolsRecreateKeyFile = new System.Windows.Forms.ToolStripMenuItem();
+			this.m_menuToolsAdvSep0 = new System.Windows.Forms.ToolStripSeparator();
+			this.m_menuToolsOptionsEnf = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuToolsSep1 = new System.Windows.Forms.ToolStripSeparator();
 			this.m_menuToolsTriggers = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_menuToolsPlugins = new System.Windows.Forms.ToolStripMenuItem();
@@ -290,7 +298,6 @@
 			this.m_tvGroups = new KeePass.UI.CustomTreeViewEx();
 			this.m_lvEntries = new KeePass.UI.CustomListViewEx();
 			this.m_richEntryView = new KeePass.UI.CustomRichTextBoxEx();
-			this.m_menuFindHistory = new System.Windows.Forms.ToolStripMenuItem();
 			this.m_ctxGroupList.SuspendLayout();
 			this.m_ctxPwList.SuspendLayout();
 			this.m_menuMain.SuspendLayout();
@@ -998,6 +1005,7 @@
             this.m_menuEntrySelectAll,
             this.m_menuEntrySep3,
             this.m_menuEntryRearrange,
+            this.m_menuEntryCompare,
             this.m_menuEntryDX});
 			this.m_menuEntry.Name = "m_menuEntry";
 			this.m_menuEntry.Size = new System.Drawing.Size(46, 20);
@@ -1351,6 +1359,47 @@
 			this.m_menuEntryMoveToPreviousParent.Text = "<>";
 			this.m_menuEntryMoveToPreviousParent.Click += new System.EventHandler(this.OnEntryMoveToPreviousParent);
 			// 
+			// m_menuEntryCompare
+			// 
+			this.m_menuEntryCompare.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.m_menuEntryCompare2,
+            this.m_menuEntryCompareSep0,
+            this.m_menuEntryCompareMark,
+            this.m_menuEntryCompare1});
+			this.m_menuEntryCompare.Name = "m_menuEntryCompare";
+			this.m_menuEntryCompare.Size = new System.Drawing.Size(175, 22);
+			this.m_menuEntryCompare.Text = "&Compare";
+			this.m_menuEntryCompare.DropDownOpening += new System.EventHandler(this.OnEntryCompareOpening);
+			// 
+			// m_menuEntryCompare2
+			// 
+			this.m_menuEntryCompare2.Image = global::KeePass.Properties.Resources.B16x16_KGPG_Key2;
+			this.m_menuEntryCompare2.Name = "m_menuEntryCompare2";
+			this.m_menuEntryCompare2.Size = new System.Drawing.Size(261, 22);
+			this.m_menuEntryCompare2.Text = "&Compare Entries...";
+			this.m_menuEntryCompare2.Click += new System.EventHandler(this.OnEntryCompare2);
+			// 
+			// m_menuEntryCompareSep0
+			// 
+			this.m_menuEntryCompareSep0.Name = "m_menuEntryCompareSep0";
+			this.m_menuEntryCompareSep0.Size = new System.Drawing.Size(258, 6);
+			// 
+			// m_menuEntryCompareMark
+			// 
+			this.m_menuEntryCompareMark.Image = global::KeePass.Properties.Resources.B16x16_KGPG_Key1;
+			this.m_menuEntryCompareMark.Name = "m_menuEntryCompareMark";
+			this.m_menuEntryCompareMark.Size = new System.Drawing.Size(261, 22);
+			this.m_menuEntryCompareMark.Text = "&Mark Entry for Comparison";
+			this.m_menuEntryCompareMark.Click += new System.EventHandler(this.OnEntryCompareMark);
+			// 
+			// m_menuEntryCompare1
+			// 
+			this.m_menuEntryCompare1.Image = global::KeePass.Properties.Resources.B16x16_KGPG_Key2;
+			this.m_menuEntryCompare1.Name = "m_menuEntryCompare1";
+			this.m_menuEntryCompare1.Size = new System.Drawing.Size(261, 22);
+			this.m_menuEntryCompare1.Text = "C&ompare Entry with Marked Entry...";
+			this.m_menuEntryCompare1.Click += new System.EventHandler(this.OnEntryCompare1);
+			// 
 			// m_menuEntryDX
 			// 
 			this.m_menuEntryDX.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -1603,6 +1652,14 @@
 			this.m_menuFindLastMod.Size = new System.Drawing.Size(230, 22);
 			this.m_menuFindLastMod.Text = "Last &Modified Entries...";
 			this.m_menuFindLastMod.Click += new System.EventHandler(this.OnFindLastMod);
+			// 
+			// m_menuFindHistory
+			// 
+			this.m_menuFindHistory.Image = global::KeePass.Properties.Resources.B16x16_History;
+			this.m_menuFindHistory.Name = "m_menuFindHistory";
+			this.m_menuFindHistory.Size = new System.Drawing.Size(230, 22);
+			this.m_menuFindHistory.Text = "&History...";
+			this.m_menuFindHistory.Click += new System.EventHandler(this.OnFindHistory);
 			// 
 			// m_menuFindLarge
 			// 
@@ -1908,7 +1965,9 @@
 			// m_menuToolsAdv
 			// 
 			this.m_menuToolsAdv.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.m_menuToolsRecreateKeyFile});
+            this.m_menuToolsRecreateKeyFile,
+            this.m_menuToolsAdvSep0,
+            this.m_menuToolsOptionsEnf});
 			this.m_menuToolsAdv.Name = "m_menuToolsAdv";
 			this.m_menuToolsAdv.Size = new System.Drawing.Size(204, 22);
 			this.m_menuToolsAdv.Text = "&Advanced Tools";
@@ -1920,6 +1979,18 @@
 			this.m_menuToolsRecreateKeyFile.Size = new System.Drawing.Size(285, 22);
 			this.m_menuToolsRecreateKeyFile.Text = "&Recreate Key File From Printed Backup...";
 			this.m_menuToolsRecreateKeyFile.Click += new System.EventHandler(this.OnToolsRecreateKeyFile);
+			// 
+			// m_menuToolsAdvSep0
+			// 
+			this.m_menuToolsAdvSep0.Name = "m_menuToolsAdvSep0";
+			this.m_menuToolsAdvSep0.Size = new System.Drawing.Size(282, 6);
+			// 
+			// m_menuToolsOptionsEnf
+			// 
+			this.m_menuToolsOptionsEnf.Name = "m_menuToolsOptionsEnf";
+			this.m_menuToolsOptionsEnf.Size = new System.Drawing.Size(285, 22);
+			this.m_menuToolsOptionsEnf.Text = "&Enforce Options...";
+			this.m_menuToolsOptionsEnf.Click += new System.EventHandler(this.OnToolsOptionsEnf);
 			// 
 			// m_menuToolsSep1
 			// 
@@ -2447,9 +2518,10 @@
 			this.m_tvGroups.AfterCollapse += new System.Windows.Forms.TreeViewEventHandler(this.OnGroupsAfterCollapse);
 			this.m_tvGroups.DragLeave += new System.EventHandler(this.OnGroupsDragLeave);
 			this.m_tvGroups.DragDrop += new System.Windows.Forms.DragEventHandler(this.OnGroupsDragDrop);
+			this.m_tvGroups.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.OnGroupsAfterSelect);
 			this.m_tvGroups.DragEnter += new System.Windows.Forms.DragEventHandler(this.OnGroupsDragEnter);
 			this.m_tvGroups.KeyUp += new System.Windows.Forms.KeyEventHandler(this.OnGroupsKeyUp);
-			this.m_tvGroups.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.OnGroupsNodeClick);
+			this.m_tvGroups.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.OnGroupsNodeMouseClick);
 			this.m_tvGroups.KeyDown += new System.Windows.Forms.KeyEventHandler(this.OnGroupsKeyDown);
 			this.m_tvGroups.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.OnGroupsAfterExpand);
 			this.m_tvGroups.ItemDrag += new System.Windows.Forms.ItemDragEventHandler(this.OnGroupsItemDrag);
@@ -2492,14 +2564,6 @@
 			this.m_richEntryView.KeyDown += new System.Windows.Forms.KeyEventHandler(this.OnEntryViewKeyDown);
 			this.m_richEntryView.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.OnEntryViewLinkClicked);
 			this.m_richEntryView.KeyUp += new System.Windows.Forms.KeyEventHandler(this.OnEntryViewKeyUp);
-			// 
-			// m_menuFindHistory
-			// 
-			this.m_menuFindHistory.Image = global::KeePass.Properties.Resources.B16x16_History;
-			this.m_menuFindHistory.Name = "m_menuFindHistory";
-			this.m_menuFindHistory.Size = new System.Drawing.Size(230, 22);
-			this.m_menuFindHistory.Text = "&History...";
-			this.m_menuFindHistory.Click += new System.EventHandler(this.OnFindHistory);
 			// 
 			// MainForm
 			// 
@@ -2806,6 +2870,13 @@
 		private System.Windows.Forms.ToolStripSeparator m_menuEntryEditQuickSep2;
 		private System.Windows.Forms.ToolStripMenuItem m_menuEntryOtpGenSettings;
 		private System.Windows.Forms.ToolStripMenuItem m_menuFindHistory;
+		private System.Windows.Forms.ToolStripSeparator m_menuToolsAdvSep0;
+		private System.Windows.Forms.ToolStripMenuItem m_menuToolsOptionsEnf;
+		private System.Windows.Forms.ToolStripMenuItem m_menuEntryCompare;
+		private System.Windows.Forms.ToolStripMenuItem m_menuEntryCompare2;
+		private System.Windows.Forms.ToolStripSeparator m_menuEntryCompareSep0;
+		private System.Windows.Forms.ToolStripMenuItem m_menuEntryCompareMark;
+		private System.Windows.Forms.ToolStripMenuItem m_menuEntryCompare1;
 	}
 }
 

@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ namespace KeePass.DataExchange.Formats
 		public override string DefaultExtension { get { return "1pux"; } }
 		public override string ApplicationGroup { get { return KPRes.PasswordManagers; } }
 
-		public override void Import(PwDatabase pwStorage, Stream sInput,
+		public override void Import(PwDatabase pdStorage, Stream sInput,
 			IStatusLogger slLogger)
 		{
 			using(ZipArchiveEx za = new ZipArchiveEx(sInput))
@@ -54,16 +54,12 @@ namespace KeePass.DataExchange.Formats
 				using(Stream s = za.OpenEntry("export.data"))
 				{
 					if(s == null) throw new FormatException();
-
-					using(StreamReader sr = new StreamReader(s, StrUtil.Utf8, true))
-					{
-						str = sr.ReadToEnd();
-					}
+					str = MemUtil.ReadString(s, StrUtil.Utf8);
 				}
 
 				CharStream cs = new CharStream(str);
 				JsonObject jo = new JsonObject(cs);
-				ImportRoot(jo, za, pwStorage);
+				ImportRoot(jo, za, pdStorage);
 			}
 		}
 
@@ -141,7 +137,11 @@ namespace KeePass.DataExchange.Formats
 			JsonObject joDetails = jo.GetValue<JsonObject>("details");
 			if(joDetails != null)
 			{
-				string str = joDetails.GetValue<string>("notesPlain");
+				string str = joDetails.GetValue<string>("password");
+				if(!string.IsNullOrEmpty(str))
+					ImportUtil.AppendToField(pe, PwDefs.PasswordField, str, pd);
+
+				str = joDetails.GetValue<string>("notesPlain");
 				if(!string.IsNullOrEmpty(str))
 					ImportUtil.AppendToField(pe, PwDefs.NotesField, str, pd);
 
@@ -149,7 +149,7 @@ namespace KeePass.DataExchange.Formats
 				if(joFile != null) ImportAttachment(joFile, za, pe);
 
 				foreach(JsonObject joLF in joDetails.GetValueArray<JsonObject>("loginFields", true))
-					ImportLoginField(joLF, za, pe, pd);
+					ImportLoginField(joLF, pe, pd);
 
 				foreach(JsonObject joSection in joDetails.GetValueArray<JsonObject>("sections", true))
 				{
@@ -162,8 +162,7 @@ namespace KeePass.DataExchange.Formats
 			else { Debug.Assert(false); }
 		}
 
-		private static void ImportLoginField(JsonObject jo, ZipArchiveEx za,
-			PwEntry pe, PwDatabase pd)
+		private static void ImportLoginField(JsonObject jo, PwEntry pe, PwDatabase pd)
 		{
 			string strName;
 			string strDsg = jo.GetValue<string>("designation");

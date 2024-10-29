@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -91,6 +91,26 @@ namespace KeePass.App.Configuration
 			}
 		}
 
+		private string m_strMasterKeyExpiryForce = string.Empty;
+		[DefaultValue("")]
+		public string MasterKeyExpiryForce
+		{
+			get { return m_strMasterKeyExpiryForce; }
+			set
+			{
+				if(value == null) throw new ArgumentNullException("value");
+				m_strMasterKeyExpiryForce = value;
+			}
+		}
+
+		private bool m_bKeyTrfWeakWarning = true;
+		[DefaultValue(true)]
+		public bool KeyTransformWeakWarning
+		{
+			get { return m_bKeyTrfWeakWarning; }
+			set { m_bKeyTrfWeakWarning = value; }
+		}
+
 		private bool m_bClipClearOnExit = true;
 		[DefaultValue(true)]
 		public bool ClipboardClearOnExit
@@ -147,7 +167,6 @@ namespace KeePass.App.Configuration
 			set { m_bSslCertsAcceptInvalid = value; }
 		}
 
-		// https://keepass.info/help/v2_dev/customize.html#opt
 		private bool m_bPreventScreenCapture = false;
 		[DefaultValue(false)]
 		public bool PreventScreenCapture

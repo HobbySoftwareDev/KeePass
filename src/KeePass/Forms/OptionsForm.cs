@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ using System.Windows.Forms;
 
 using KeePass.App;
 using KeePass.App.Configuration;
+using KeePass.Native;
 using KeePass.Resources;
 using KeePass.UI;
 using KeePass.UI.ToolStripRendering;
@@ -34,7 +35,6 @@ using KeePass.Util;
 
 using KeePassLib;
 using KeePassLib.Delegates;
-using KeePassLib.Serialization;
 using KeePassLib.Utility;
 
 using NativeLib = KeePassLib.Native.NativeLib;
@@ -47,7 +47,7 @@ namespace KeePass.Forms
 	public partial class OptionsForm : Form
 	{
 		private ImageList m_ilIcons;
-		private BannerStyle m_bsCurrent = BannerStyle.KeePassWin32;
+		private BannerStyle m_bsCurrent = BannerStyle.Light;
 		private bool m_bBlockUIUpdate = false;
 		private bool m_bLoadingSettings = false;
 
@@ -56,7 +56,7 @@ namespace KeePass.Forms
 		private CheckedLVItemDXList m_cdxGuiOptions = null;
 		private CheckedLVItemDXList m_cdxAdvanced = null;
 
-		private Dictionary<int, string> m_dTsrUuids = new Dictionary<int, string>();
+		private readonly Dictionary<int, string> m_dTsrUuids = new Dictionary<int, string>();
 
 		private FontControlGroup m_fcgList = null;
 		private FontControlGroup m_fcgPassword = null;
@@ -65,9 +65,6 @@ namespace KeePass.Forms
 		private Keys m_kPrevATP = Keys.None;
 		private Keys m_kPrevATS = Keys.None;
 		private Keys m_kPrevSW = Keys.None;
-
-		private AceUrlSchemeOverrides m_aceUrlSchemeOverrides = null;
-		private string m_strUrlOverrideAll = string.Empty;
 
 		private string m_strInitialTsRenderer = string.Empty;
 		public bool RequiresUIReinitialize
@@ -143,8 +140,11 @@ namespace KeePass.Forms
 			if(uTab < (uint)m_tabMain.TabPages.Count)
 				m_tabMain.SelectedTab = m_tabMain.TabPages[(int)uTab];
 
-			m_aceUrlSchemeOverrides = Program.Config.Integration.UrlSchemeOverrides.CloneDeep();
-			m_strUrlOverrideAll = Program.Config.Integration.UrlOverride;
+			m_tabPolicy.Text = KPRes.Policy;
+			UIUtil.SetText(m_cbLockAfterTime, KPRes.LockAfterTime + ":");
+			UIUtil.SetText(m_cbLockAfterGlobalTime, KPRes.LockAfterGlobalTime + ":");
+			UIUtil.SetText(m_cbClipClearTime, KPRes.ClipboardClearTime + ":");
+			UIUtil.SetText(m_cbDefaultExpireDays, KPRes.ExpiryDefaultDays + ":");
 
 			Debug.Assert(!m_cmbMenuStyle.Sorted);
 			m_cmbMenuStyle.Items.Add(KPRes.Automatic + " (" + KPRes.Recommended + ")");
@@ -178,9 +178,9 @@ namespace KeePass.Forms
 
 			Debug.Assert(!m_cmbBannerStyle.Sorted);
 			fAddBannerStyle(BannerStyle.Default, KPRes.CurrentStyle);
-			fAddBannerStyle(BannerStyle.WinXPLogin, "Windows XP Login");
-			fAddBannerStyle(BannerStyle.WinVistaBlack, "Windows Vista Black");
-			fAddBannerStyle(BannerStyle.KeePassWin32, "KeePass Win32");
+			fAddBannerStyle(BannerStyle.Blue, KPRes.Blue);
+			fAddBannerStyle(BannerStyle.Dark, KPRes.Dark);
+			fAddBannerStyle(BannerStyle.Light, KPRes.Light);
 			fAddBannerStyle(BannerStyle.BlueCarbon, "Blue Carbon");
 
 			CreateDialogBanner(BannerStyle.Default); // Default forces generation
@@ -197,6 +197,7 @@ namespace KeePass.Forms
 				Program.Config.UI.StandardFont, afDefault);
 			m_fcgPassword = new FontControlGroup(m_cbPasswordFont, m_btnPasswordFont,
 				Program.Config.UI.PasswordFont, afMono);
+			// m_fcgPassword.FontSizeMaximum = AceUI.PasswordFontSizeMaximum;
 
 			AceEscAction aEscCur = Program.Config.MainWindow.EscAction;
 			int iEscSel = (int)AceEscAction.Lock;
@@ -226,6 +227,8 @@ namespace KeePass.Forms
 			UIUtil.ConfigureToolTip(m_ttRect);
 			UIUtil.SetToolTip(m_ttRect, m_cbClipClearTime, KPRes.ClipboardClearDesc +
 				MessageService.NewParagraph + KPRes.ClipboardOptionME, false);
+			UIUtil.SetToolTip(m_ttRect, m_tbSearch, KPRes.Search + " (" +
+				UIUtil.GetKeysName(Keys.Control | Keys.F) + ")", true);
 
 			AccessibilityEx.SetContext(m_numLockAfterTime, m_cbLockAfterTime);
 			AccessibilityEx.SetContext(m_numLockAfterGlobalTime, m_cbLockAfterGlobalTime);
@@ -285,7 +288,10 @@ namespace KeePass.Forms
 
 		private void LoadSecurityOptions()
 		{
-			AceWorkspaceLocking aceWL = Program.Config.Security.WorkspaceLocking;
+			AppConfigEx cfg = Program.Config;
+			AceDefaults aceDef = cfg.Defaults;
+			AceSecurity aceSec = cfg.Security;
+			AceWorkspaceLocking aceWL = aceSec.WorkspaceLocking;
 
 			uint uLockTime = aceWL.LockAfterTime;
 			bool bLockTime = (uLockTime > 0);
@@ -301,7 +307,7 @@ namespace KeePass.Forms
 			if(AppConfigEx.IsOptionEnforced(aceWL, "LockAfterGlobalTime"))
 				m_cbLockAfterGlobalTime.Enabled = false;
 
-			int nDefaultExpireDays = Program.Config.Defaults.NewEntryExpiresInDays;
+			int nDefaultExpireDays = aceDef.NewEntryExpiresInDays;
 			if(nDefaultExpireDays < 0)
 				m_cbDefaultExpireDays.Checked = false;
 			else
@@ -310,17 +316,17 @@ namespace KeePass.Forms
 				try { m_numDefaultExpireDays.Value = nDefaultExpireDays; }
 				catch(Exception) { Debug.Assert(false); }
 			}
-			if(AppConfigEx.IsOptionEnforced(Program.Config.Defaults, "NewEntryExpiresInDays"))
+			if(AppConfigEx.IsOptionEnforced(aceDef, "NewEntryExpiresInDays"))
 				m_cbDefaultExpireDays.Enabled = false;
 
-			int nClipClear = Program.Config.Security.ClipboardClearAfterSeconds;
+			int nClipClear = aceSec.ClipboardClearAfterSeconds;
 			if(nClipClear >= 0)
 			{
 				m_cbClipClearTime.Checked = true;
 				m_numClipClearTime.Value = nClipClear;
 			}
 			else m_cbClipClearTime.Checked = false;
-			if(AppConfigEx.IsOptionEnforced(Program.Config.Security, "ClipboardClearAfterSeconds"))
+			if(AppConfigEx.IsOptionEnforced(aceSec, "ClipboardClearAfterSeconds"))
 				m_cbClipClearTime.Enabled = false;
 
 			m_lvSecurityOptions.Columns.Add(string.Empty); // Resize below
@@ -369,28 +375,31 @@ namespace KeePass.Forms
 					KPRes.ClipboardOptionME;
 			};
 
-			fClipME(m_cdxSecurityOptions.CreateItem(Program.Config.Security,
-				"ClipboardClearOnExit", lvg, KPRes.ClipboardClearOnExit));
-			fClipME(m_cdxSecurityOptions.CreateItem(Program.Config.Security,
-				"ClipboardNoPersist", lvg, KPRes.ClipboardNoPersist));
-			fClipME(m_cdxSecurityOptions.CreateItem(Program.Config.Security,
-				"UseClipboardViewerIgnoreFormat", lvg,
-				KPRes.ClipboardViewerIgnoreFormat // + " " + KPRes.NotRecommended
+			fClipME(m_cdxSecurityOptions.CreateItem(aceSec, "ClipboardClearOnExit",
+				lvg, KPRes.ClipboardClearOnExit));
+			fClipME(m_cdxSecurityOptions.CreateItem(aceSec, "ClipboardNoPersist",
+				lvg, KPRes.ClipboardNoPersist));
+			fClipME(m_cdxSecurityOptions.CreateItem(aceSec, "UseClipboardViewerIgnoreFormat",
+				lvg, KPRes.ClipboardViewerIgnoreFormat // + " " + KPRes.NotRecommended
 				));
 
 			lvg = new ListViewGroup(KPRes.Advanced);
 			m_lvSecurityOptions.Groups.Add(lvg);
 
 			if(NativeLib.IsLibraryInstalled())
-				m_cdxSecurityOptions.CreateItem(Program.Config.Native, "NativeKeyTransformations",
+				m_cdxSecurityOptions.CreateItem(cfg.Native, "NativeKeyTransformations",
 					lvg, KPRes.NativeLibUse);
 
-			m_cdxSecurityOptions.CreateItem(Program.Config.Security, "MasterKeyOnSecureDesktop",
+			m_cdxSecurityOptions.CreateItem(aceSec, "KeyTransformWeakWarning",
+				lvg, KPRes.KeyTransformWeakWarning);
+			m_cdxSecurityOptions.CreateItem(aceSec, "PreventScreenCapture",
+				lvg, KPRes.PreventScreenCapture, obNoWin);
+			m_cdxSecurityOptions.CreateItem(aceSec, "MasterKeyOnSecureDesktop",
 				lvg, KPRes.MasterKeyOnSecureDesktop, obNoWin);
-			m_cdxSecurityOptions.CreateItem(Program.Config.Security, "ClearKeyCommandLineParams",
+			m_cdxSecurityOptions.CreateItem(aceSec, "ClearKeyCommandLineParams",
 				lvg, KPRes.ClearKeyCmdLineParams);
-			m_cdxSecurityOptions.CreateItem(Program.Config.Security.MasterPassword,
-				"RememberWhileOpen", lvg, KPRes.MasterPasswordRmbWhileOpen);
+			m_cdxSecurityOptions.CreateItem(aceSec.MasterPassword, "RememberWhileOpen",
+				lvg, KPRes.MasterPasswordRmbWhileOpen);
 
 			m_cdxSecurityOptions.UpdateData(false);
 			UIUtil.ResizeColumns(m_lvSecurityOptions, true);
@@ -411,7 +420,7 @@ namespace KeePass.Forms
 
 			LoadPolicyOption("Plugins", AppPolicyId.Plugins);
 			LoadPolicyOption("Export", AppPolicyId.Export);
-			LoadPolicyOption("ExportNoKey", AppPolicyId.ExportNoKey);
+			// LoadPolicyOption("ExportNoKey", AppPolicyId.ExportNoKey);
 			LoadPolicyOption("Import", AppPolicyId.Import);
 			LoadPolicyOption("Print", AppPolicyId.Print);
 			LoadPolicyOption("PrintNoKey", AppPolicyId.PrintNoKey);
@@ -539,6 +548,13 @@ namespace KeePass.Forms
 			m_lvGuiOptions.Groups.Add(lvg);
 			m_cdxGuiOptions.CreateItem(Program.Config.UI, "ShowRecycleConfirmDialog",
 				lvg, KPRes.RecycleShowConfirm);
+			m_cdxGuiOptions.CreateItem(Program.Config.UI, "ShowCmdUriConfirmDialog",
+				lvg, KPRes.UriRunConfirm.Replace("{PARAM}", "cmd://"));
+			m_cdxGuiOptions.CreateItem(Program.Config.UI, "ShowCmdPlhConfirmDialog",
+				lvg, KPRes.PlhSprConfirm.Replace("{PARAM}", "{CMD:...}"));
+			m_cdxGuiOptions.CreateItem(Program.Config.UI, "ShowRefPPlhConfirmDialog",
+				lvg, KPRes.PlhSprConfirm.Replace("{PARAM}", "{REF:P@...}") +
+				" (" + KPRes.ActionLower + ")");
 			m_cdxGuiOptions.CreateItem(Program.Config.UI, "ShowDbMntncResultsDialog",
 				lvg, KPRes.DbMntncResults);
 			m_cdxGuiOptions.CreateItem(Program.Config.UI, "ShowEmSheetDialog",
@@ -700,7 +716,7 @@ namespace KeePass.Forms
 			m_cdxAdvanced.CreateItem(Program.Config.Application, "SaveForceSync",
 				lvg, KPRes.SaveForceSync);
 			m_cdxAdvanced.CreateItem(Program.Config.Security, "SslCertsAcceptInvalid",
-				lvg, KPRes.SslCertsAcceptInvalid);
+				lvg, KPRes.TlsCertsAcceptInvalid);
 
 			lvg = new ListViewGroup(KPRes.Advanced);
 			m_lvAdvanced.Groups.Add(lvg);
@@ -765,6 +781,23 @@ namespace KeePass.Forms
 
 		private void SaveOptions()
 		{
+			bool bPreventSC = Program.Config.Security.PreventScreenCapture;
+
+			SaveOptionsPriv();
+
+			if(!bPreventSC && Program.Config.Security.PreventScreenCapture)
+			{
+				string strNL = MessageService.NewLine;
+				if(!MessageService.AskYesNo(KPRes.OptionActivateAboutTo + strNL +
+					"'" + KPRes.PreventScreenCapture + "'." + strNL + strNL +
+					KPRes.PreventScreenCaptureNote + strNL + strNL +
+					KPRes.OptionActivateConfirm))
+					Program.Config.Security.PreventScreenCapture = false;
+			}
+		}
+
+		private void SaveOptionsPriv()
+		{
 			if(!m_cbLockAfterTime.Checked)
 				Program.Config.Security.WorkspaceLocking.LockAfterTime = 0;
 			else
@@ -827,9 +860,6 @@ namespace KeePass.Forms
 				AppDefs.GlobalHotKeyId.ShowWindow);
 
 			// Program.Config.UI.TrayIcon.SingleClickDefault = m_cbSingleClickTrayAction.Checked;
-
-			Program.Config.Integration.UrlSchemeOverrides = m_aceUrlSchemeOverrides;
-			Program.Config.Integration.UrlOverride = m_strUrlOverrideAll;
 
 			m_cdxAdvanced.UpdateData(true);
 
@@ -984,13 +1014,7 @@ namespace KeePass.Forms
 
 		private void OnBtnUrlOverrides(object sender, EventArgs e)
 		{
-			UrlOverridesForm dlg = new UrlOverridesForm();
-			dlg.InitEx(m_aceUrlSchemeOverrides, m_strUrlOverrideAll);
-
-			if(dlg.ShowDialog() == DialogResult.OK)
-				m_strUrlOverrideAll = dlg.UrlOverrideAll;
-
-			UIUtil.DestroyForm(dlg);
+			UIUtil.ShowDialogAndDestroy(new UrlOverridesForm());
 		}
 
 		private void OnHotKeyHelpLinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -1005,14 +1029,12 @@ namespace KeePass.Forms
 
 		private void OnBtnProxy(object sender, EventArgs e)
 		{
-			ProxyForm dlg = new ProxyForm();
-			UIUtil.ShowDialogAndDestroy(dlg);
+			UIUtil.ShowDialogAndDestroy(new ProxyForm());
 		}
 
 		private void OnBtnHelpSource(object sender, EventArgs e)
 		{
-			HelpSourceForm hsf = new HelpSourceForm();
-			UIUtil.ShowDialogAndDestroy(hsf);
+			UIUtil.ShowDialogAndDestroy(new HelpSourceForm());
 		}
 
 		private void OnSecOptExLinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -1038,6 +1060,30 @@ namespace KeePass.Forms
 		private void OnAltColorSelectedIndexChanged(object sender, EventArgs e)
 		{
 			UpdateUIState();
+		}
+
+		protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+		{
+			bool bDown;
+			if(!NativeMethods.GetKeyMessageState(ref msg, out bDown) ||
+				(UIUtil.GetActiveControl(this) is HotKeyControlEx))
+				return base.ProcessCmdKey(ref msg, keyData);
+
+			Keys kc = (keyData & Keys.KeyCode);
+
+			// Browsers use Ctrl+F, Visual Studio uses Ctrl+E
+			if(((kc == Keys.F) || (kc == Keys.E)) && ((keyData &
+				(Keys.Control | Keys.Alt)) == Keys.Control))
+			{
+				if(bDown)
+				{
+					UIUtil.SetFocus(m_tbSearch, this);
+					m_tbSearch.SelectAll();
+				}
+				return true;
+			}
+
+			return base.ProcessCmdKey(ref msg, keyData);
 		}
 	}
 }

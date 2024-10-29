@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2024 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -89,6 +89,12 @@ namespace KeePass.Resources
 		}
 
 		[Obsolete]
+		public static string InvalidUserPassword
+		{
+			get { return (KPRes.Invalid + " (" + KPRes.UserName + " / " + KPRes.Password + ")!"); }
+		}
+
+		[Obsolete]
 		public static string NewDatabaseFileName
 		{
 			get { return (KPRes.Database + "." + AppDefs.FileExtension.FileExt); }
@@ -98,6 +104,12 @@ namespace KeePass.Resources
 		public static string ShowObject
 		{
 			get { return @"{PARAM}"; } // "Show {PARAM}"
+		}
+
+		[Obsolete]
+		public static string SslCertsAcceptInvalid
+		{
+			get { return KPRes.TlsCertsAcceptInvalid; }
 		}
 
 		[Obsolete]
@@ -128,6 +140,24 @@ namespace KeePass.Resources
 		public static string UnknownError
 		{
 			get { return KLRes.UnknownError; }
+		}
+
+		[Obsolete]
+		public static string UserNamePrompt
+		{
+			get { return (KPRes.UserNameStc + ":"); }
+		}
+
+		[Obsolete]
+		public static string WebSiteLogin
+		{
+			get { return "Web Site Login"; }
+		}
+
+		[Obsolete]
+		public static string WebSites
+		{
+			get { return "Web Sites"; }
 		}
 	}
 }
